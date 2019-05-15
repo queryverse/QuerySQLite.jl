@@ -1,3 +1,7 @@
 name = "QuerySQLite"
 uuid = "57f923c0-76be-11e9-095d-c942eaffc94b"
 version = "0.1.0"
+
+[deps]
+QueryableBackend = "0898d9ac-042b-5d31-8dcc-959fb3365f19"
+SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
