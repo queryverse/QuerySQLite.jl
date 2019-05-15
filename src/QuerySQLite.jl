@@ -1,0 +1,3 @@
+module QuerySQLite
+
+end # module
