@@ -9,7 +9,7 @@ filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
 
 c = SQLiteConnection(filename)
 
-dt = c.Album |> @filter(_.a > 3) |> DataTable
+dt = c.Album |> @filter(_.a > 3) |> @mutate(c = _.a * 3) |> DataTable
 
 @test length(dt)==347
 
