@@ -479,6 +479,8 @@ end
 IteratorInterfaceExtensions.isiterable(::OutsideCode) = true
 TableTraits.isiterabletable(::OutsideCode) = true
 
+Base.collect(source::OutsideCode) = collect(IteratorInterfaceExtensions.getiterator(source))
+
 function IteratorInterfaceExtensions.getiterator(outside_code::OutsideCode)
     # TODO REVIEW
     stricttypes = true
