@@ -1,43 +1,47 @@
 using Query
-using Test: @test, @testset
+using Test
 using QuerySQLite
 using SQLite: DB
-using DataFrames: DataFrame
+using QueryTables
 
 filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
 database = NamedTuple(OutsideTables(DB(filename)))
 
 @testset "QuerySQLite" begin
 
-@test names(database.Track |>
+@test database.Track |>
     @map({_.TrackId, _.Name, _.Composer, _.UnitPrice}) |>
-    DataFrame) == [:TrackId, :Name, :Composer, :UnitPrice]
+    collect |>
+    first |>
+    propertynames == (:TrackId, :Name, :Composer, :UnitPrice)
 
 @test (database.Customer |>
     @map({_.City, _.Country}) |>
     @orderby(_.Country) |>
-    DataFrame).Country[1] == "Argentina"
+    DataTable).Country[1] == "Argentina"
 
-@test length((database.Customer |>
+@test database.Customer |>
     @map({_.City}) |>
     @unique() |>
-    DataFrame).City)  == 53
+    collect |> 
+    length == 53
 
-@test length((database.Track |>
+@test database.Track |>
     @map({_.TrackId, _.Name}) |>
     @take(10) |>
-    DataFrame).Name) == 10
+    collect |>
+    length == 10
 
 @test first((database.Track |>
     @map({_.TrackId, _.Name}) |>
     @drop(10) |>
     @take(10) |>
-    DataFrame).Name) == "C.O.D."
+    DataTable).Name)  == "C.O.D."
 
 @test first((database.Track |>
     @map({_.TrackId, _.Name, _.Bytes}) |>
     @orderby_descending(_.Bytes) |>
     @thenby(_.Name) |>
-    DataFrame).Bytes) == 1059546140
+    DataTable).Bytes) == 1059546140
 
 end
