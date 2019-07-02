@@ -1,6 +1,6 @@
 using Query
 using Test: @test, @testset
-using Main.QuerySQLite
+using QuerySQLite
 using SQLite: DB
 using DataFrames: DataFrame
 
