@@ -390,16 +390,6 @@ translate_call(::typeof(take), iterator, number) =
         string(translate(iterator), " LIMIT ", number)
     end
 
-# utilities
-
-change_row(arbitrary_function, iterator, arguments...) = model_row(iterator)
-
-ignore_name(new_name_model::Pair{Symbol, <: OutsideCode}) =
-    translate(new_name_model.second.code)
-
-column_or_columns(row::NamedTuple) = map(ignore_name, (pairs(row)...,))
-column_or_columns(outside_code::OutsideCode) = (translate(outside_code.code),)
-
 # SQLite interface
 
 to_symbols(them) = map_unrolled(Symbol, (them...,))
@@ -409,6 +399,8 @@ get_column_names(database::DB, table_name) =
     to_symbols(SQLite.columns(database, String(table_name)).name)
 
 # dispatch
+
+change_row(arbitrary_function, iterator, arguments...) = model_row(iterator)
 
 model_row(code::Expr) =
     if @capture code call_(arguments__)
@@ -421,7 +413,11 @@ translate(something) = something
 
 translate(code::Expr) =
     if @capture code call_(arguments__)
-        translate_call(call, arguments...)
+        translate_call(if call === ifelse
+            if_else
+        else
+            call
+        end, arguments...)
     elseif @capture code left_ && right_
         translate_call(&, left, right)
     elseif @capture code left_ | right_
