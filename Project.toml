@@ -9,6 +9,8 @@ QueryableBackend = "0898d9ac-042b-5d31-8dcc-959fb3365f19"
 QueryOperators = "2aef5ad7-51ca-5a8f-8e88-e75cf067b44b"
 SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
 TableTraits = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
+DataValues = "e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5"
+TableShowUtils = "5e66a065-1f0a-5976-b372-e0b8c017ca10"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
