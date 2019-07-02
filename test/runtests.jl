@@ -1,13 +1,13 @@
 using Query
 using Test: @test, @testset
-
-@testset "QuerySQLite" begin
+using Main.QuerySQLite
+using SQLite: DB
+using DataFrames: DataFrame
 
 filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
-
 database = NamedTuple(OutsideTables(DB(filename)))
 
-database.Album |> @rename(:AlbumId => :AlbumId2) |> @filter(_.AlbumId2 > 3) |> DataFrame
+@testset "QuerySQLite" begin
 
 @test names(database.Track |>
     @map({_.TrackId, _.Name, _.Composer, _.UnitPrice}) |>

@@ -45,6 +45,7 @@ Get the names of the tables in `outside`
 """
 get_table_names(outside::DB) =
     as_symbols(tables(outside).name)
+export get_table_names
 
 """
     get_column_names(outside, table_name)::Tuple{Symbol}
@@ -53,6 +54,7 @@ Get column names of `table_name` in `outside`
 """
 get_column_names(outside::DB, table_name) =
     as_symbols(columns(outside, String(table_name)).name)
+export get_column_names
 
 """
     submit_to(outside, text)
@@ -60,15 +62,17 @@ get_column_names(outside::DB, table_name) =
 Send `text` to `outside`
 """
 submit_to(outside::DB, text) = DataFrame(Query(outside, text))
+export submit_to
 
 """
     abstract type OutsideTables{Outside} end
 
-`Outside` must support [`get_table_names`](@ref), [`get_column_names`](@ref), and [`evaluate`](@ref).
+`Outside` must support [`get_table_names`](@ref), [`get_column_names`](@ref), and [`submit_to`](@ref).
 """
 struct OutsideTables{Outside}
     outside::Outside
 end
+export OutsideTables
 
 struct OutsideTable{Outside}
     outside::Outside
