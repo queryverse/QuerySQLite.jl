@@ -1,14 +1,14 @@
 module QuerySQLite
 
 import Base: !, &, |, ==, !=, coalesce, getproperty, in, isequal, isless, ismissing, occursin, startswith
-using Base: NamedTuple, tail
+using Base: Generator, NamedTuple, tail
 import Base.Iterators: drop, take
 using Base.Meta: quot
 import DataFrames: DataFrame
 import MacroTools
 using MacroTools: @capture
 import QueryOperators
-import QueryOperators: query
+import QueryOperators: orderby, query
 import SQLite
 using SQLite: columns, DB, tables
 
@@ -185,13 +185,14 @@ translate_call(::typeof(backwards), column) =
 translate_call(::typeof(coalesce), arguments...) =
     string("COALESCE(", join(map_unrolled(translate, arguments...), ", "), ")")
 
-@code_instead distinct OutsideCode
-translate_call(::typeof(distinct), repeated) =
-    replace(translate(repeated), r"\bSELECT\b" => "SELECT DISTINCT")
-
 @code_instead drop OutsideCode Integer
 translate_call(::typeof(drop), iterator, number) =
     string(translate(iterator), " OFFSET ", number)
+
+change_row(::typeof(getproperty), outside_tables::OutsideTables, table_name) =
+    model_row(OutsideTable(outside_tables.outside, table_name))
+translate_call(::typeof(getproperty), outside_row::OutsideRow, column_name) =
+    column_name
 
 """
     if_else(switch, yes, no)
@@ -252,28 +253,83 @@ translate_call(::typeof(isless), left, right) =
 translate_call(::typeof(ismissing), maybe) =
     string(translate(maybe), " IS NULL")
 
-@code_instead QueryOperators.filter OutsideCode Any
-translate_call(::typeof(QueryOperators.filter), iterator, call) =
+@code_instead QueryOperators.drop OutsideCode Integer
+translate_call(::typeof(QueryOperators.drop), iterator, number) =
+    string(translate(iterator), " OFFSET ", number)
+
+@code_instead QueryOperators.filter OutsideCode Any Expr
+translate_call(::typeof(QueryOperators.filter), iterator, call, call_expression) =
     string(
         translate(iterator),
         " WHERE ",
         translate(call(model_row(iterator)).code)
     )
 
-@code_instead QueryOperators.map OutsideCode Any
-change_row(::typeof(QueryOperators.map), iterator, call) = call(model_row(iterator))
-select_as((name, model)::Tuple{Symbol, OutsideCode}) =
-    string(translate(model.code), " AS ", name)
-function translate_call(::typeof(QueryOperators.map), select_table, call)
+@code_instead QueryOperators.orderby OutsideCode Any Expr
+translate_call(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression) = string(
+    translate(unordered),
+    " ORDER BY ",
+    translate(key_function(model_row(unordered)).code)
+)
+@code_instead QueryOperators.thenby OutsideCode Any Expr
+translate_call(::typeof(QueryOperators.thenby), unordered, key_function, key_function_expression) = string(
+    translate(unordered),
+    ", ",
+    translate(key_function(model_row(unordered)).code)
+)
+@code_instead QueryOperators.orderby_descending OutsideCode Any Expr
+translate_call(::typeof(QueryOperators.orderby_descending), unordered, key_function, key_function_expression) = string(
+    translate(unordered),
+    " ORDER BY ",
+    translate(key_function(model_row(unordered)).code),
+    " DESC"
+)
+@code_instead QueryOperators.thenby_descending OutsideCode Any Expr
+translate_call(::typeof(QueryOperators.thenby_descending), unordered, key_function, key_function_expression) = string(
+    translate(unordered),
+    ", ",
+    translate(key_function(model_row(unordered)).code),
+    "DESC"
+)
+
+@code_instead QueryOperators.map OutsideCode Any Expr
+change_row(::typeof(QueryOperators.map), iterator, call, call_expression) = call(model_row(iterator))
+select_as(new_name_model::Pair{Symbol, <: OutsideCode}) =
+    string(translate(new_name_model.second.code), " AS ", new_name_model.first)
+function translate_call(::typeof(QueryOperators.map), select_table, call, call_expression)
     if @capture select_table $getproperty(outsidetables_OutsideTables, name_)
         string(
             "SELECT ",
-            join(map_unrolled(select_as, pairs(call(model_row(select_table)))), ", "),
+            join(Generator(select_as, pairs(call(model_row(select_table)))), ", "),
             " FROM ",
             name
         )
     else
         error("over can only be called directly on SQL tables")
+    end
+end
+
+@code_instead QueryOperators.take OutsideCode Any
+translate_call(::typeof(QueryOperators.take), iterator, number) =
+    if @capture iterator $(QueryOperators.drop)(inneriterator_, offset_)
+        string(
+            translate(inneriterator),
+            " LIMIT ",
+            number,
+            " OFFSET ",
+            offset
+        )
+    else
+        string(translate(iterator), " LIMIT ", number)
+    end
+
+@code_instead QueryOperators.unique OutsideCode Any Expr
+function translate_call(::typeof(QueryOperators.unique), repeated, key_function, key_function_expression)
+    model = model_row(repeated)
+    if key_function(model) !== model
+        error("Key functions not supported for unique")
+    else
+        replace(translate(repeated), r"\bSELECT\b" => "SELECT DISTINCT")
     end
 end
 
@@ -296,8 +352,21 @@ translate_call(::typeof(occursin), needle, haystack) = string(
     translate(needle)
 )
 
+make_outside_column(outside_table, column_name) =
+    OutsideCode(
+        outside_table.outside,
+        Expr(:call, getproperty, OutsideRow(outside_table), column_name)
+    )
+function model_row(outside_table::OutsideTable)
+    column_names = get_column_names(outside_table.outside, outside_table.table_name)
+    NamedTuple{column_names}(partial_map(
+        make_outside_column,
+        outside_table,
+        column_names
+    ))
+end
 translate(outside_table::OutsideTable) =
-    string("SELECT * FROM ", check_table)
+    string("SELECT * FROM ", outside_table.table_name)
 
 @code_instead startswith OutsideCode Any
 @code_instead startswith Any OutsideCode
@@ -327,10 +396,10 @@ translate_call(::typeof(take), iterator, number) =
 
 change_row(arbitrary_function, iterator, arguments...) = model_row(iterator)
 
-ignore_name((new_name, model)::Tuple{Symbol, OutsideCode}) =
-    translate(model.code)
+ignore_name(new_name_model::Pair{Symbol, <: OutsideCode}) =
+    translate(new_name_model.second.code)
 
-column_or_columns(row::NamedTuple) = map_unrolled(ignore_name, pairs(row))
+column_or_columns(row::NamedTuple) = map(ignore_name, (pairs(row)...,))
 column_or_columns(outside_code::OutsideCode) = (translate(outside_code.code),)
 
 # SQLite interface
