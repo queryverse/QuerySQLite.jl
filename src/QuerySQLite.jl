@@ -505,5 +505,20 @@ function IteratorInterfaceExtensions.getiterator(outside_code::OutsideCode)
     return SQLiteCursor{NamedTuple{Tuple(header), Tuple{types...}}}(stmt, Ref(status), Ref(0))
 end
 
+function Base.show(io::IO, source::OutsideCode)
+    TableShowUtils.printtable(io, IteratorInterfaceExtensions.getiterator(source), "SQLite query result")
+end
+
+function Base.show(io::IO, ::MIME"text/html", source::OutsideCode)
+    TableShowUtils.printHTMLtable(io, IteratorInterfaceExtensions.getiterator(source))
+end
+
+Base.Multimedia.showable(::MIME"text/html", source::OutsideCode) = true
+
+function Base.show(io::IO, ::MIME"application/vnd.dataresource+json", source::OutsideCode)
+    TableShowUtils.printdataresource(io, IteratorInterfaceExtensions.getiterator(source))
+end
+
+Base.Multimedia.showable(::MIME"application/vnd.dataresource+json", source::OutsideCode) = true
 
 end # module
