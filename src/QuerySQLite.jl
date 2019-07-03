@@ -4,13 +4,15 @@ import Base: !, &, |, ==, !=, coalesce, getproperty, in, isequal, isless, ismiss
 using Base: Generator, NamedTuple, tail
 import Base.Iterators: drop, take
 using Base.Meta: quot
-import DataFrames: DataFrame
 import MacroTools
 using MacroTools: @capture
 import QueryOperators
 import QueryOperators: orderby, query
 import SQLite
 using SQLite: columns, DB, tables
+import IteratorInterfaceExtensions, TableTraits
+using DataValues
+import TableShowUtils
 
 map_unrolled(call, variables::Tuple{}) = ()
 map_unrolled(call, variables) =
@@ -55,14 +57,6 @@ Get column names of `table_name` in `outside`
 get_column_names(outside::DB, table_name) =
     as_symbols(columns(outside, String(table_name)).name)
 export get_column_names
-
-"""
-    submit_to(outside, text)
-
-Send `text` to `outside`
-"""
-submit_to(outside::DB, text) = DataFrame(Query(outside, text))
-export submit_to
 
 """
     abstract type OutsideTables{Outside} end
@@ -398,14 +392,11 @@ translate_call(::typeof(take), iterator, number) =
 
 # SQLite interface
 
-using DataFrames: DataFrame
-
 to_symbols(them) = map_unrolled(Symbol, (them...,))
 
 get_table_names(database::DB) = to_symbols(tables(database).name)
 get_column_names(database::DB, table_name) =
     to_symbols(SQLite.columns(database, String(table_name)).name)
-submit_to(database::DB, text) = DataFrame(SQLite.Query(database, text))
 
 # dispatch
 
@@ -440,10 +431,92 @@ translate(code::Expr) =
 # collect
 query(outside_code::OutsideCode) = outside_code
 
-DataFrame(outside_code::OutsideCode) =
-    submit_to(
-        outside_code.outside,
-        translate(outside_code.code)
-    )
+struct SQLiteCursor{T}
+    stmt::SQLite.Stmt
+    status::Base.RefValue{Cint}
+    cur_row::Base.RefValue{Int}
+end    
+
+Base.eltype(q::SQLiteCursor{T}) where {T} = T
+Base.IteratorSize(::Type{<:SQLiteCursor}) = Base.SizeUnknown()
+
+function isdone(q::SQLiteCursor)
+    st = q.status[]
+    st == SQLite.SQLITE_DONE && return true
+    st == SQLite.SQLITE_ROW || SQLite.sqliteerror(q.stmt.db)
+    return false
+end
+
+function SQLite.getvalue(q::SQLiteCursor, col::Int, ::Type{T}) where {T}
+    handle = q.stmt.handle
+    t = SQLite.sqlite3_column_type(handle, col)
+    if t == SQLite.SQLITE_NULL
+        return T()
+    else
+        TT = SQLite.juliatype(t) # native SQLite Int, Float, and Text types
+        return SQLite.sqlitevalue(ifelse(TT === Any && !isbitstype(T), T, TT), handle, col)
+    end
+end
+
+
+
+function Base.iterate(q::SQLiteCursor{NT}) where {NT}
+    isdone(q) && return nothing
+    nt = SQLite.generate_namedtuple(NT, q)
+    q.cur_row[] = 1
+    return nt, 1
+end
+
+function Base.iterate(q::SQLiteCursor{NT}, state) where {NT}
+    state != q.cur_row[] && error("FOO")
+    q.status[] = SQLite.sqlite3_step(q.stmt.handle)
+    isdone(q) && return nothing
+    nt = SQLite.generate_namedtuple(NT, q)
+    q.cur_row[] = state + 1
+    return nt, state + 1
+end
+
+IteratorInterfaceExtensions.isiterable(::OutsideCode) = true
+TableTraits.isiterabletable(::OutsideCode) = true
+
+Base.collect(source::OutsideCode) = collect(IteratorInterfaceExtensions.getiterator(source))
+
+function IteratorInterfaceExtensions.getiterator(outside_code::OutsideCode)
+    # TODO REVIEW
+    stricttypes = true
+    nullable = true
+
+    stmt = SQLite.Stmt(outside_code.outside, translate(outside_code.code))
+    # bind!(stmt, values)
+    status = SQLite.execute!(stmt)
+    cols = SQLite.sqlite3_column_count(stmt.handle)
+    header = Vector{Symbol}(undef, cols)
+    types = Vector{Type}(undef, cols)
+    for i = 1:cols
+        header[i] = Symbol(unsafe_string(SQLite.sqlite3_column_name(stmt.handle, i)))
+        if nullable
+            types[i] = stricttypes ? DataValue{SQLite.juliatype(stmt.handle, i)} : Any
+        else
+            types[i] = stricttypes ? SQLite.juliatype(stmt.handle, i) : Any
+        end
+    end
+    return SQLiteCursor{NamedTuple{Tuple(header), Tuple{types...}}}(stmt, Ref(status), Ref(0))
+end
+
+function Base.show(io::IO, source::OutsideCode)
+    TableShowUtils.printtable(io, IteratorInterfaceExtensions.getiterator(source), "SQLite query result")
+end
+
+function Base.show(io::IO, ::MIME"text/html", source::OutsideCode)
+    TableShowUtils.printHTMLtable(io, IteratorInterfaceExtensions.getiterator(source))
+end
+
+Base.Multimedia.showable(::MIME"text/html", source::OutsideCode) = true
+
+function Base.show(io::IO, ::MIME"application/vnd.dataresource+json", source::OutsideCode)
+    TableShowUtils.printdataresource(io, IteratorInterfaceExtensions.getiterator(source))
+end
+
+Base.Multimedia.showable(::MIME"application/vnd.dataresource+json", source::OutsideCode) = true
 
 end # module
