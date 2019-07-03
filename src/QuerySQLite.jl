@@ -171,7 +171,7 @@ translate_call(::typeof(&), left, right) =
 @code_instead (|) OutsideCode Any
 @code_instead (|) Any OutsideCode
 @code_instead (|) OutsideCode OutsideCode
-translate_call(::typeof(&), left, right) =
+translate_call(::typeof(|), left, right) =
     string(translate(left), " OR ", translate(right))
 
 @code_instead backwards OutsideCode
@@ -390,14 +390,6 @@ translate_call(::typeof(take), iterator, number) =
         string(translate(iterator), " LIMIT ", number)
     end
 
-# SQLite interface
-
-to_symbols(them) = map_unrolled(Symbol, (them...,))
-
-get_table_names(database::DB) = to_symbols(tables(database).name)
-get_column_names(database::DB, table_name) =
-    to_symbols(SQLite.columns(database, String(table_name)).name)
-
 # dispatch
 
 change_row(arbitrary_function, iterator, arguments...) = model_row(iterator)
@@ -435,7 +427,7 @@ struct SQLiteCursor{T}
     stmt::SQLite.Stmt
     status::Base.RefValue{Cint}
     cur_row::Base.RefValue{Int}
-end    
+end
 
 Base.eltype(q::SQLiteCursor{T}) where {T} = T
 Base.IteratorSize(::Type{<:SQLiteCursor}) = Base.SizeUnknown()
@@ -457,8 +449,6 @@ function SQLite.getvalue(q::SQLiteCursor, col::Int, ::Type{T}) where {T}
         return SQLite.sqlitevalue(ifelse(TT === Any && !isbitstype(T), T, TT), handle, col)
     end
 end
-
-
 
 function Base.iterate(q::SQLiteCursor{NT}) where {NT}
     isdone(q) && return nothing
