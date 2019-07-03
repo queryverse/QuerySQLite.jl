@@ -1,18 +1,25 @@
 module QuerySQLite
 
-import Base: !, &, |, ==, !=, coalesce, getproperty, in, isequal, isless, ismissing, occursin, startswith
-using Base: Generator, NamedTuple, tail
+import Base: !, &, |, ==, !=, coalesce, collect, eltype, getproperty, in,
+isdone, isequal, isless, ismissing, iterate, IteratorSize, occursin, show,
+startswith
+using Base: Generator, NamedTuple, RefValue, SizeUnknown, tail
 import Base.Iterators: drop, take
 using Base.Meta: quot
+import Base.Multimedia: showable
+using DataValues: DataValue
+import IteratorInterfaceExtensions: getiterator, isiterable
 import MacroTools
 using MacroTools: @capture
 import QueryOperators
 import QueryOperators: orderby, query
 import SQLite
-using SQLite: columns, DB, tables
-import IteratorInterfaceExtensions, TableTraits
-using DataValues
-import TableShowUtils
+import SQLite: getvalue
+using SQLite: columns, DB, execute!, generate_namedtuple, juliatype,
+SQLITE_DONE, SQLITE_NULL, SQLITE_ROW, sqlite3_column_count, sqlite3_column_name,
+sqlite3_column_type, sqlite3_step, sqlitevalue, Stmt, tables
+using TableShowUtils: printdataresource, printHTMLtable, printtable
+import TableTraits: isiterabletable
 
 map_unrolled(call, variables::Tuple{}) = ()
 map_unrolled(call, variables) =
@@ -412,7 +419,7 @@ translate(code::Expr) =
         end, arguments...)
     elseif @capture code left_ && right_
         translate_call(&, left, right)
-    elseif @capture code left_ | right_
+    elseif @capture code left_ || right_
         translate_call(|, left, right)
     elseif @capture code if condition_ yes_ else no_ end
         translate_call(if_else, condition, left, right)
@@ -423,90 +430,118 @@ translate(code::Expr) =
 # collect
 query(outside_code::OutsideCode) = outside_code
 
-struct SQLiteCursor{T}
-    stmt::SQLite.Stmt
-    status::Base.RefValue{Cint}
-    cur_row::Base.RefValue{Int}
+struct SQLiteCursor{Row}
+    statement::Stmt
+    status::RefValue{Cint}
+    cursor_row::RefValue{Int}
 end
 
-Base.eltype(q::SQLiteCursor{T}) where {T} = T
-Base.IteratorSize(::Type{<:SQLiteCursor}) = Base.SizeUnknown()
+eltype(::SQLiteCursor{Row}) where {Row} = Row
+IteratorSize(::Type{<:SQLiteCursor}) = SizeUnknown()
 
-function isdone(q::SQLiteCursor)
-    st = q.status[]
-    st == SQLite.SQLITE_DONE && return true
-    st == SQLite.SQLITE_ROW || SQLite.sqliteerror(q.stmt.db)
-    return false
-end
-
-function SQLite.getvalue(q::SQLiteCursor, col::Int, ::Type{T}) where {T}
-    handle = q.stmt.handle
-    t = SQLite.sqlite3_column_type(handle, col)
-    if t == SQLite.SQLITE_NULL
-        return T()
+function isdone(cursor::SQLiteCursor)
+    status = cursor.status[]
+    if status == SQLITE_DONE
+        true
+    elseif status == SQLITE_ROW
+        false
+    elseif sqliteerror(cursor.statement.db)
+        false
     else
-        TT = SQLite.juliatype(t) # native SQLite Int, Float, and Text types
-        return SQLite.sqlitevalue(ifelse(TT === Any && !isbitstype(T), T, TT), handle, col)
+        error("Unknown SQLite cursor status")
     end
 end
 
-function Base.iterate(q::SQLiteCursor{NT}) where {NT}
-    isdone(q) && return nothing
-    nt = SQLite.generate_namedtuple(NT, q)
-    q.cur_row[] = 1
-    return nt, 1
+function getvalue(cursor::SQLiteCursor, column_number::Int, ::Type{Value}) where {Value}
+    handle = cursor.statement.handle
+    column_type = sqlite3_column_type(handle, column_number)
+    if column_type == SQLITE_NULL
+        Value()
+    else
+        julia_type = juliatype(column_type) # native SQLite Int, Float, and Text types
+        sqlitevalue(
+            if julia_type === Any
+                if !isbitstype(Value)
+                    Value
+                else
+                    julia_type
+                end
+            else
+                julia_type
+            end, handle, column_number)
+    end
 end
 
-function Base.iterate(q::SQLiteCursor{NT}, state) where {NT}
-    state != q.cur_row[] && error("FOO")
-    q.status[] = SQLite.sqlite3_step(q.stmt.handle)
-    isdone(q) && return nothing
-    nt = SQLite.generate_namedtuple(NT, q)
-    q.cur_row[] = state + 1
-    return nt, state + 1
-end
+iterate(cursor::SQLiteCursor{Row}) where {Row} =
+    if isdone(cursor)
+        nothing
+    else
+        named_tuple = generate_namedtuple(Row, cursor)
+        cursor.cursor_row[] = 1
+        named_tuple, 1
+    end
 
-IteratorInterfaceExtensions.isiterable(::OutsideCode) = true
-TableTraits.isiterabletable(::OutsideCode) = true
-
-Base.collect(source::OutsideCode) = collect(IteratorInterfaceExtensions.getiterator(source))
-
-function IteratorInterfaceExtensions.getiterator(outside_code::OutsideCode)
-    # TODO REVIEW
-    stricttypes = true
-    nullable = true
-
-    stmt = SQLite.Stmt(outside_code.outside, translate(outside_code.code))
-    # bind!(stmt, values)
-    status = SQLite.execute!(stmt)
-    cols = SQLite.sqlite3_column_count(stmt.handle)
-    header = Vector{Symbol}(undef, cols)
-    types = Vector{Type}(undef, cols)
-    for i = 1:cols
-        header[i] = Symbol(unsafe_string(SQLite.sqlite3_column_name(stmt.handle, i)))
-        if nullable
-            types[i] = stricttypes ? DataValue{SQLite.juliatype(stmt.handle, i)} : Any
+iterate(cursor::SQLiteCursor{Row}, state) where {Row} =
+    if state != cursor.cursor_row[]
+        error("State does not match SQLiteCursor row")
+    else
+        cursor.status[] = sqlite3_step(cursor.statement.handle)
+        if isdone(cursor)
+            nothing
         else
-            types[i] = stricttypes ? SQLite.juliatype(stmt.handle, i) : Any
+            named_tuple = generate_namedtuple(Row, cursor)
+            cursor.cursor_row[] = state + 1
+            named_tuple, state + 1
         end
     end
-    return SQLiteCursor{NamedTuple{Tuple(header), Tuple{types...}}}(stmt, Ref(status), Ref(0))
+
+isiterable(::OutsideCode) = true
+isiterabletable(::OutsideCode) = true
+
+collect(source::OutsideCode) = collect(getiterator(source))
+
+second((value_1, value_2)) = value_2
+
+name_and_type(handle, column_number, nullable = true, strict_types = true) =
+    Symbol(unsafe_string(sqlite3_column_name(handle, column_number))),
+    if strict_types
+        julia_type = juliatype(handle, column_number)
+        if nullable
+            DataValue{julia_type}
+        else
+            julia_type
+        end
+    else
+        Any
+    end
+
+function getiterator(outside_code::OutsideCode)
+    # TODO REVIEW
+    statement = Stmt(outside_code.outside, translate(outside_code.code))
+    # bind!(statement, values)
+    status = execute!(statement)
+    handle = statement.handle
+    schema = ntuple(
+        let handle = handle
+            column_number -> name_and_type(handle, column_number)
+        end,
+        sqlite3_column_count(handle)
+    )
+    SQLiteCursor{NamedTuple{
+        Tuple(map_unrolled(first, schema)),
+        Tuple{map_unrolled(second, schema)...}
+    }}(statement, Ref(status), Ref(0))
 end
 
-function Base.show(io::IO, source::OutsideCode)
-    TableShowUtils.printtable(io, IteratorInterfaceExtensions.getiterator(source), "SQLite query result")
-end
+show(stream::IO, source::OutsideCode) =
+    printtable(stream, getiterator(source), "SQLite query result")
 
-function Base.show(io::IO, ::MIME"text/html", source::OutsideCode)
-    TableShowUtils.printHTMLtable(io, IteratorInterfaceExtensions.getiterator(source))
-end
+showable(::MIME"text/html", source::OutsideCode) = true
+show(stream::IO, ::MIME"text/html", source::OutsideCode) =
+    printHTMLtable(stream, getiterator(source))
 
-Base.Multimedia.showable(::MIME"text/html", source::OutsideCode) = true
-
-function Base.show(io::IO, ::MIME"application/vnd.dataresource+json", source::OutsideCode)
-    TableShowUtils.printdataresource(io, IteratorInterfaceExtensions.getiterator(source))
-end
-
-Base.Multimedia.showable(::MIME"application/vnd.dataresource+json", source::OutsideCode) = true
+showable(::MIME"application/vnd.dataresource+json", source::OutsideCode) = true
+show(stream::IO, ::MIME"application/vnd.dataresource+json", source::OutsideCode) =
+    printdataresource(stream, getiterator(source))
 
 end # module
