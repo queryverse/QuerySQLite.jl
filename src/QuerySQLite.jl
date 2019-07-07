@@ -90,22 +90,22 @@ function get_tables(outside)
 end
 export get_tables
 
-struct OutsideTable{Outside}
+struct OutsideRow{Outside}
     outside::Outside
     table_name::Symbol
 end
 
-OutsideTable(outside_table::OutsideTable) =
-    OutsideTable(outside_table.outside, outside_table.table_name)
+OutsideRow(outside_row::OutsideRow) =
+    OutsideRow(outside_row.outside, outside_row.table_name)
 
 function pop_outsides!(outsides, outside_code::OutsideCode)
     push!(outsides, outside_code.outside)
     outside_code.code
 end
 pop_outsides!(outsides, something) = something
-function combine_outsides(a_function, arguments...)
+function combine_outsides(a_function, outside_codes...)
     outsides = Set(Any[])
-    codes = partial_map(pop_outsides!, outsides, arguments)
+    codes = partial_map(pop_outsides!, outsides, outside_codes)
     OutsideCode(
         if length(outsides) == 0
             error("No outside")
@@ -152,60 +152,60 @@ end
 @code_instead (==) OutsideCode Any
 @code_instead (==) Any OutsideCode
 @code_instead (==) OutsideCode OutsideCode
-translate_call(::typeof(==), left, right) =
+translate_node(::typeof(==), left, right) =
     string(translate(left), " = ", translate(right))
 
 @code_instead (!=) OutsideCode Any
 @code_instead (!=) Any OutsideCode
 @code_instead (!=) OutsideCode OutsideCode
-translate_call(::typeof(!=), left, right) =
+translate_node(::typeof(!=), left, right) =
     string(translate(left), " <> ", translate(right))
 
 @code_instead (!) OutsideCode
-translate_call(::typeof(!), wrong) = string("NOT ", translate(wrong))
+translate_node(::typeof(!), wrong) = string("NOT ", translate(wrong))
 
 @code_instead (&) OutsideCode Any
 @code_instead (&) Any OutsideCode
 @code_instead (&) OutsideCode OutsideCode
-translate_call(::typeof(&), left, right) =
+translate_node(::typeof(&), left, right) =
     string(translate(left), " AND ", translate(right))
 
 @code_instead (|) OutsideCode Any
 @code_instead (|) Any OutsideCode
 @code_instead (|) OutsideCode OutsideCode
-translate_call(::typeof(|), left, right) =
+translate_node(::typeof(|), left, right) =
     string(translate(left), " OR ", translate(right))
 
 @code_instead backwards OutsideCode
-translate_call(::typeof(backwards), column) =
+translate_node(::typeof(backwards), column) =
     string(translate(column), " DESC")
 
 @code_instead coalesce OutsideCode Vararg{Any}
 
-translate_call(::typeof(coalesce), arguments...) =
+translate_node(::typeof(coalesce), arguments...) =
     string("COALESCE(", join(map_unrolled(translate, arguments...), ", "), ")")
 
 @code_instead drop OutsideCode Integer
-translate_call(::typeof(drop), iterator, number) =
+translate_node(::typeof(drop), iterator, number) =
     string(translate(iterator), " OFFSET ", number)
 
-get_column(outside_table, column_name) =
+get_column(outside_row, column_name) =
     OutsideCode(
-        outside_table.outside,
-        Expr(:call, getproperty, outside_table, column_name)
+        outside_row.outside,
+        Expr(:call, getproperty, outside_row, column_name)
     )
-function get_model_call(::typeof(getproperty), outside_tables::OutsideTables, table_name)
+function make_model_row_node(::typeof(getproperty), outside_tables::OutsideTables, table_name)
     outside = outside_tables.outside
     column_names = get_column_names(outside, table_name)
     NamedTuple{column_names}(partial_map(
         get_column,
-        OutsideTable(outside, table_name),
+        OutsideRow(outside, table_name),
         column_names
     ))
 end
-translate_call(::typeof(getproperty), outside_tables::OutsideTables, table_name) =
+translate_node(::typeof(getproperty), outside_tables::OutsideTables, table_name) =
     string("SELECT * FROM ", table_name)
-translate_call(::typeof(getproperty), outside_table::OutsideTable, column_name) =
+translate_node(::typeof(getproperty), outside_row::OutsideRow, column_name) =
     column_name
 
 """
@@ -233,7 +233,7 @@ export if_else
 @code_instead if_else OutsideCode Any OutsideCode
 @code_instead if_else OutsideCode OutsideCode Any
 @code_instead if_else OutsideCode OutsideCode OutsideCode
-translate_call(::typeof(if_else), test, right, wrong) = string(
+translate_node(::typeof(if_else), test, right, wrong) = string(
     "CASE WHEN ",
     translate(test),
     " THEN ",
@@ -246,76 +246,76 @@ translate_call(::typeof(if_else), test, right, wrong) = string(
 @code_instead in OutsideCode Any
 @code_instead in Any OutsideCode
 @code_instead in OutsideCode OutsideCode
-translate_call(::typeof(in), item, collection) =
+translate_node(::typeof(in), item, collection) =
     string(translate(item), " IN ", collection)
 
 @code_instead isequal OutsideCode Any
 @code_instead isequal Any OutsideCode
 @code_instead isequal OutsideCode OutsideCode
 
-translate_call(::typeof(isequal), left, right) =
+translate_node(::typeof(isequal), left, right) =
     string(translate(left), " IS NOT DISTINCT FROM ", translate(right))
 
 @code_instead isless OutsideCode Any
 @code_instead isless Any OutsideCode
 @code_instead isless OutsideCode OutsideCode
 
-translate_call(::typeof(isless), left, right) =
+translate_node(::typeof(isless), left, right) =
     string(translate(left), " < ", translate(right))
 
 @code_instead ismissing OutsideCode
-translate_call(::typeof(ismissing), maybe) =
+translate_node(::typeof(ismissing), maybe) =
     string(translate(maybe), " IS NULL")
 
 @code_instead QueryOperators.drop OutsideCode Integer
-translate_call(::typeof(QueryOperators.drop), iterator, number) =
+translate_node(::typeof(QueryOperators.drop), iterator, number) =
     string(translate(iterator), " OFFSET ", number)
 
 @code_instead QueryOperators.filter OutsideCode Any Expr
-translate_call(::typeof(QueryOperators.filter), iterator, call, call_expression) =
+translate_node(::typeof(QueryOperators.filter), iterator, call, call_expression) =
     string(
         translate(iterator),
         " WHERE ",
-        translate(get_code(call(get_model(iterator)).code))
+        translate(get_code(call(make_model_row(iterator)).code))
     )
 
 @code_instead QueryOperators.orderby OutsideCode Any Expr
-translate_call(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression) = string(
+translate_node(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     " ORDER BY ",
-    translate(get_code(key_function(get_model(unordered))))
+    translate(get_code(key_function(make_model_row(unordered))))
 )
 @code_instead QueryOperators.thenby OutsideCode Any Expr
-translate_call(::typeof(QueryOperators.thenby), unordered, key_function, key_function_expression) = string(
+translate_node(::typeof(QueryOperators.thenby), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     ", ",
-    translate(get_code(key_function(get_model(unordered))))
+    translate(get_code(key_function(make_model_row(unordered))))
 )
 @code_instead QueryOperators.orderby_descending OutsideCode Any Expr
-translate_call(::typeof(QueryOperators.orderby_descending), unordered, key_function, key_function_expression) = string(
+translate_node(::typeof(QueryOperators.orderby_descending), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     " ORDER BY ",
-    translate(get_code(key_function(get_model(unordered)))),
+    translate(get_code(key_function(make_model_row(unordered)))),
     " DESC"
 )
 @code_instead QueryOperators.thenby_descending OutsideCode Any Expr
-translate_call(::typeof(QueryOperators.thenby_descending), unordered, key_function, key_function_expression) = string(
+translate_node(::typeof(QueryOperators.thenby_descending), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     ", ",
-    translate(get_code(key_function(get_model(unordered)))),
+    translate(get_code(key_function(make_model_row(unordered)))),
     "DESC"
 )
 
 @code_instead QueryOperators.map OutsideCode Any Expr
-get_model_call(::typeof(QueryOperators.map), iterator, call, call_expression) =
-    call(get_model(iterator))
-select_as(new_name_model::Pair{Symbol, <: OutsideCode}) =
-    string(translate(get_code(new_name_model.second)), " AS ", new_name_model.first)
-function translate_call(::typeof(QueryOperators.map), select_table, call, call_expression)
+make_model_row_node(::typeof(QueryOperators.map), iterator, call, call_expression) =
+    call(make_model_row(iterator))
+select_as(new_name_make_model_row::Pair{Symbol, <: OutsideCode}) =
+    string(translate(get_code(new_name_make_model_row.second)), " AS ", new_name_make_model_row.first)
+function translate_node(::typeof(QueryOperators.map), select_table, call, call_expression)
     if @capture select_table $getproperty(outsidetables_OutsideTables, name_)
         string(
             "SELECT ",
-            join(Generator(select_as, pairs(call(get_model(select_table)))), ", "),
+            join(Generator(select_as, pairs(call(make_model_row(select_table)))), ", "),
             " FROM ",
             name
         )
@@ -325,7 +325,7 @@ function translate_call(::typeof(QueryOperators.map), select_table, call, call_e
 end
 
 @code_instead QueryOperators.take OutsideCode Any
-translate_call(::typeof(QueryOperators.take), iterator, number) =
+translate_node(::typeof(QueryOperators.take), iterator, number) =
     if @capture iterator $(QueryOperators.drop)(inneriterator_, offset_)
         string(
             translate(inneriterator),
@@ -339,9 +339,9 @@ translate_call(::typeof(QueryOperators.take), iterator, number) =
     end
 
 @code_instead QueryOperators.unique OutsideCode Any Expr
-function translate_call(::typeof(QueryOperators.unique), repeated, key_function, key_function_expression)
-    model = get_model(repeated)
-    if key_function(model) !== model
+function translate_node(::typeof(QueryOperators.unique), repeated, key_function, key_function_expression)
+    the_make_model_row = make_model_row(repeated)
+    if key_function(the_make_model_row) !== the_make_model_row
         error("Key functions not supported for unique")
     else
         replace(translate(repeated), r"\bSELECT\b" => "SELECT DISTINCT")
@@ -350,18 +350,18 @@ end
 
 @code_instead occursin AbstractString OutsideCode
 @code_instead occursin Regex OutsideCode
-translate_call(::typeof(occursin), needle::AbstractString, haystack) = string(
+translate_node(::typeof(occursin), needle::AbstractString, haystack) = string(
     translate(haystack),
     " LIKE '%",
     needle,
     "%'"
 )
-translate_call(::typeof(occursin), needle::Regex, haystack) = string(
+translate_node(::typeof(occursin), needle::Regex, haystack) = string(
     translate(haystack),
     " LIKE ",
     replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_")
 )
-translate_call(::typeof(occursin), needle, haystack) = string(
+translate_node(::typeof(occursin), needle, haystack) = string(
     translate(haystack),
     " LIKE ",
     translate(needle)
@@ -370,7 +370,7 @@ translate_call(::typeof(occursin), needle, haystack) = string(
 @code_instead startswith OutsideCode Any
 @code_instead startswith Any OutsideCode
 @code_instead startswith OutsideCode OutsideCode
-translate_call(::typeof(startswith), full, prefix::AbstractString) = string(
+translate_node(::typeof(startswith), full, prefix::AbstractString) = string(
     translate(full),
     " LIKE '",
     prefix,
@@ -378,7 +378,7 @@ translate_call(::typeof(startswith), full, prefix::AbstractString) = string(
 )
 
 @code_instead take OutsideCode Integer
-translate_call(::typeof(take), iterator, number) =
+translate_node(::typeof(take), iterator, number) =
     if @capture iterator $drop(inneriterator_, offset_)
         string(
             translate(inneriterator),
@@ -392,34 +392,29 @@ translate_call(::typeof(take), iterator, number) =
     end
 
 # dispatch
-
-get_model_call(arbitrary_function, iterator, arguments...) = get_model(iterator)
-
-get_model(code::Expr) =
+nodes(code::Expr) =
     if @capture code call_(arguments__)
-        get_model_call(call, arguments...)
-    else
-        error("Cannot build a get_model row for $code")
-    end
-
-translate(something) = something
-translate(outside_table::OutsideTable) = outside_table.table_name
-translate(code::Expr) =
-    if @capture code call_(arguments__)
-        translate_call(if call === ifelse
+        if call === ifelse
             if_else
         else
             call
-        end, arguments...)
+        end, arguments...
     elseif @capture code left_ && right_
-        translate_call(&, left, right)
+        &, left, right
     elseif @capture code left_ || right_
-        translate_call(|, left, right)
+        |, left, right
     elseif @capture code if condition_ yes_ else no_ end
-        translate_call(if_else, condition, left, right)
+        if_else, condition, left, right
     else
-        error("Cannot translate code $code")
+        error("Cannot split call $code")
     end
+
+make_model_row_node(arbitrary_function, iterator, arguments...) = make_model_row(iterator)
+make_model_row(code::Expr) = make_model_row_node(nodes(code)...)
+
+translate(something) = something
+translate(outside_row::OutsideRow) = outside_row.table_name
+translate(code::Expr) = translate_node(nodes(code)...)
 
 # collect
 query(outside_code::OutsideCode) = outside_code
@@ -427,7 +422,7 @@ query(outside_code::OutsideCode) = outside_code
 struct SQLiteCursor{Row}
     statement::Stmt
     status::RefValue{Cint}
-    cursor_row::RefValue{Int}
+    cursor_make_model_row::RefValue{Int}
 end
 
 eltype(::SQLiteCursor{Row}) where {Row} = Row
@@ -471,20 +466,20 @@ iterate(cursor::SQLiteCursor{Row}) where {Row} =
         nothing
     else
         named_tuple = generate_namedtuple(Row, cursor)
-        cursor.cursor_row[] = 1
+        cursor.cursor_make_model_row[] = 1
         named_tuple, 1
     end
 
 iterate(cursor::SQLiteCursor{Row}, state) where {Row} =
-    if state != cursor.cursor_row[]
-        error("State does not match SQLiteCursor row")
+    if state != cursor.cursor_make_model_row[]
+        error("State does not match SQLiteCursor make_model_row")
     else
         cursor.status[] = sqlite3_step(cursor.statement.handle)
         if isdone(cursor)
             nothing
         else
             named_tuple = generate_namedtuple(Row, cursor)
-            cursor.cursor_row[] = state + 1
+            cursor.cursor_make_model_row[] = state + 1
             named_tuple, state + 1
         end
     end
