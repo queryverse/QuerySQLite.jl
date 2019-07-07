@@ -5,7 +5,7 @@ using SQLite: DB
 using QueryTables
 
 filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
-database = NamedTuple(OutsideTables(DB(filename)))
+database = get_tables(DB(filename))
 
 @testset "QuerySQLite" begin
 
@@ -23,7 +23,7 @@ database = NamedTuple(OutsideTables(DB(filename)))
 @test database.Customer |>
     @map({_.City}) |>
     @unique() |>
-    collect |> 
+    collect |>
     length == 53
 
 @test database.Track |>

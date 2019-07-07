@@ -47,6 +47,8 @@ struct OutsideCode{Outside}
     code::Expr
 end
 
+get_code(outside_code::OutsideCode) = outside_code.code
+
 """
     get_table_names(outside)::Tuple{Symbol}
 
@@ -65,15 +67,29 @@ get_column_names(outside::DB, table_name) =
     as_symbols(columns(outside, String(table_name)).name)
 export get_column_names
 
-"""
-    abstract type OutsideTables{Outside} end
 
-`Outside` must support [`get_table_names`](@ref), [`get_column_names`](@ref), and [`submit_to`](@ref).
-"""
 struct OutsideTables{Outside}
     outside::Outside
 end
-export OutsideTables
+
+get_table(outside, table_name::Symbol) =
+    OutsideCode(
+        outside,
+        Expr(:call, getproperty, OutsideTables(outside), table_name)
+    )
+
+"""
+    get_tables(outside)
+
+`outside` must support [`get_table_names`](@ref).
+"""
+function get_tables(outside)
+    table_names = get_table_names(outside)
+    NamedTuple{table_names}(
+        partial_map(get_table, outside, table_names)
+    )
+end
+export get_tables
 
 struct OutsideTable{Outside}
     outside::Outside
@@ -87,21 +103,6 @@ end
 
 OutsideRow(outside_table::OutsideTable) =
     OutsideRow(outside_table.outside, outside_table.table_name)
-
-make_outside_table(outside_tables, table_name) =
-    OutsideCode(
-        outside_tables.outside,
-        Expr(:call, getproperty, outside_tables, table_name)
-    )
-
-function NamedTuple(outside_tables::OutsideTables)
-    table_names = get_table_names(outside_tables.outside)
-    NamedTuple{table_names}(partial_map(
-        make_outside_table,
-        outside_tables,
-        table_names
-    ))
-end
 
 function unwrap!(outsides, outside_code::OutsideCode)
     push!(outsides, outside_code.outside)
@@ -196,8 +197,11 @@ translate_call(::typeof(drop), iterator, number) =
 
 change_row(::typeof(getproperty), outside_tables::OutsideTables, table_name) =
     model_row(OutsideTable(outside_tables.outside, table_name))
+translate_call(::typeof(getproperty), outside_tables::OutsideTables, table_name) =
+    translate(OutsideTable(outside_tables.outside, table_name))
 translate_call(::typeof(getproperty), outside_row::OutsideRow, column_name) =
     column_name
+
 
 """
     if_else(switch, yes, no)
@@ -267,40 +271,41 @@ translate_call(::typeof(QueryOperators.filter), iterator, call, call_expression)
     string(
         translate(iterator),
         " WHERE ",
-        translate(call(model_row(iterator)).code)
+        translate(get_code(call(model_row(iterator)).code))
     )
 
 @code_instead QueryOperators.orderby OutsideCode Any Expr
 translate_call(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     " ORDER BY ",
-    translate(key_function(model_row(unordered)).code)
+    translate(get_code(key_function(model_row(unordered))))
 )
 @code_instead QueryOperators.thenby OutsideCode Any Expr
 translate_call(::typeof(QueryOperators.thenby), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     ", ",
-    translate(key_function(model_row(unordered)).code)
+    translate(get_code(key_function(model_row(unordered))))
 )
 @code_instead QueryOperators.orderby_descending OutsideCode Any Expr
 translate_call(::typeof(QueryOperators.orderby_descending), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     " ORDER BY ",
-    translate(key_function(model_row(unordered)).code),
+    translate(get_code(key_function(model_row(unordered)))),
     " DESC"
 )
 @code_instead QueryOperators.thenby_descending OutsideCode Any Expr
 translate_call(::typeof(QueryOperators.thenby_descending), unordered, key_function, key_function_expression) = string(
     translate(unordered),
     ", ",
-    translate(key_function(model_row(unordered)).code),
+    translate(get_code(key_function(model_row(unordered)))),
     "DESC"
 )
 
 @code_instead QueryOperators.map OutsideCode Any Expr
-change_row(::typeof(QueryOperators.map), iterator, call, call_expression) = call(model_row(iterator))
+change_row(::typeof(QueryOperators.map), iterator, call, call_expression) =
+    call(model_row(iterator))
 select_as(new_name_model::Pair{Symbol, <: OutsideCode}) =
-    string(translate(new_name_model.second.code), " AS ", new_name_model.first)
+    string(translate(get_code(new_name_model.second)), " AS ", new_name_model.first)
 function translate_call(::typeof(QueryOperators.map), select_table, call, call_expression)
     if @capture select_table $getproperty(outsidetables_OutsideTables, name_)
         string(
@@ -409,7 +414,7 @@ model_row(code::Expr) =
     end
 
 translate(something) = something
-
+translate(outside_row::OutsideRow) = outside_row.table_name
 translate(code::Expr) =
     if @capture code call_(arguments__)
         translate_call(if call === ifelse
@@ -517,7 +522,7 @@ name_and_type(handle, column_number, nullable = true, strict_types = true) =
 
 function getiterator(outside_code::OutsideCode)
     # TODO REVIEW
-    statement = Stmt(outside_code.outside, translate(outside_code.code))
+    statement = Stmt(outside_code.outside, String(translate(outside_code.code)))
     # bind!(statement, values)
     status = execute!(statement)
     handle = statement.handle
