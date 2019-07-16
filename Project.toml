@@ -1,6 +1,6 @@
 name = "QuerySQLite"
 uuid = "57f923c0-76be-11e9-095d-c942eaffc94b"
-version = "0.1.0"
+version = "0.1.1-DEV"
 
 [deps]
 IteratorInterfaceExtensions = "82899510-4779-5014-852e-03e436cf321d"
