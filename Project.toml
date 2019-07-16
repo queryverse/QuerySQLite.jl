@@ -5,7 +5,6 @@ version = "0.1.0-DEV"
 [deps]
 IteratorInterfaceExtensions = "82899510-4779-5014-852e-03e436cf321d"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-QueryableBackend = "0898d9ac-042b-5d31-8dcc-959fb3365f19"
 QueryOperators = "2aef5ad7-51ca-5a8f-8e88-e75cf067b44b"
 SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
 TableTraits = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
@@ -19,3 +18,13 @@ QueryTables = "30ad73d7-305e-5999-88c2-a7d9e8945169"
 
 [targets]
 test = ["Test", "Query", "QueryTables"]
+
+[compat]
+julia = "1"
+IteratorInterfaceExtensions = "0.1.1, 1"
+MacroTools = "0.5"
+QueryOperators = "0.9"
+SQLite = "0.8.1"
+TableTraits = "0.4.1, 1"
+DataValues = "0.4.11"
+TableShowUtils = "0.2.5"
