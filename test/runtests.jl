@@ -34,8 +34,8 @@ database = get_tables(DB(filename))
 
 @test first((database.Track |>
     @map({_.TrackId, _.Name}) |>
-    @drop(10) |>
     @take(10) |>
+    @drop(10) |>
     DataTable).Name)  == "C.O.D."
 
 @test first((database.Track |>
