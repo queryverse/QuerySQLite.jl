@@ -23,28 +23,24 @@ function get_column_names(source::DB, table_name)
 end
 export get_column_names
 
+
+"""
+    struct SourceTables{Source}
+
+`source` must support [`get_table_names`](@ref) and [`get_column_names`](@ref).
+"""
 struct SourceTables{Source}
     source::Source
 end
+export SourceTables
 
-function get_table(source, table_name::Symbol)
-    SourceCode(source,
-        Expr(:call, getproperty, SourceTables(source), table_name)
+get_source(source_tables::SourceTables) = getfield(source_tables, :source)
+
+function getproperty(source_tables::SourceTables, table_name::Symbol)
+    SourceCode(get_source(source_tables),
+        Expr(:call, getproperty, source_tables, table_name)
     )
 end
-
-"""
-    get_tables(source)
-
-`source` must support [`get_table_names`](@ref).
-"""
-function get_tables(source)
-    table_names = get_table_names(source)
-    NamedTuple{table_names}(
-        partial_map(get_table, source, table_names)
-    )
-end
-export get_tables
 
 struct SourceRow{Source}
     source::Source

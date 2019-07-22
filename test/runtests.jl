@@ -1,11 +1,11 @@
 using Query
 using Test
-using QuerySQLite
+using QuerySQLite: SourceTables
 using SQLite: DB
 using QueryTables
 
 filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
-database = get_tables(DB(filename))
+database = SourceTables(DB(filename))
 
 @testset "QuerySQLite" begin
 
