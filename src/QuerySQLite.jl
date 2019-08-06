@@ -19,6 +19,8 @@ sqlite3_column_type, sqlite3_step, sqlitevalue, Stmt, tables
 using TableShowUtils: printdataresource, printHTMLtable, printtable
 import TableTraits: isiterabletable
 
+export Database
+
 include("utilities.jl")
 include("source.jl")
 include("iterate.jl")

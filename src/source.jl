@@ -25,18 +25,21 @@ export get_column_names
 
 
 """
-    struct SourceTables{Source}
+    struct Database{Source}
 
 `source` must support [`get_table_names`](@ref) and [`get_column_names`](@ref).
 """
-struct SourceTables{Source}
+struct Database{Source}
     source::Source
 end
-export SourceTables5
 
-get_source(source_tables::SourceTables) = getfield(source_tables, :source)
+function Database(filename::AbstractString)
+    return Database(SQLite.DB(filename))
+end
 
-function getproperty(source_tables::SourceTables, table_name::Symbol)
+get_source(source_tables::Database) = getfield(source_tables, :source)
+
+function getproperty(source_tables::Database, table_name::Symbol)
     SourceCode(get_source(source_tables),
         Expr(:call, getproperty, source_tables, table_name)
     )
