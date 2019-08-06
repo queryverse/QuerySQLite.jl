@@ -1,46 +1,58 @@
 @code_instead (==) SourceCode Any
 @code_instead (==) Any SourceCode
 @code_instead (==) SourceCode SourceCode
-@simple_translate ::typeof(==) :(=)
+@translate ::typeof(==) :(=)
 
 @code_instead (!=) SourceCode Any
 @code_instead (!=) Any SourceCode
 @code_instead (!=) SourceCode SourceCode
-@simple_translate ::typeof(!=) Symbol("<>")
+@translate ::typeof(!=) Symbol("<>")
 
 @code_instead (!) SourceCode
-@simple_translate ::typeof(!) :NOT
+@translate ::typeof(!) :NOT
 
 @code_instead (&) SourceCode Any
 @code_instead (&) Any SourceCode
 @code_instead (&) SourceCode SourceCode
-@simple_translate ::typeof(&) :AND
+@translate ::typeof(&) :AND
 
 @code_instead (|) SourceCode Any
 @code_instead (|) Any SourceCode
 @code_instead (|) SourceCode SourceCode
-@simple_translate ::typeof(|) :OR
+@translate ::typeof(|) :OR
 
 @code_instead coalesce SourceCode Vararg{Any}
-@simple_translate ::typeof(coalesce) :COALESCE
+@translate ::typeof(coalesce) :COALESCE
 
 function get_column(source_row, column_name)
     SourceCode(source_row.source, Expr(:call, getproperty, source_row, column_name))
 end
-function model_row_dispatch(::typeof(getproperty), source_tables::SourceTables, table_name)
+function model_row_dispatch(::typeof(getproperty), source_tables::SourceTables, table_name; other = false, options...)
     source = get_source(source_tables)
     column_names = get_column_names(source, table_name)
     NamedTuple{column_names}(partial_map(
         get_column,
-        SourceRow(source, table_name),
+        if other
+            SourceOtherRow(source, table_name)
+        else
+            SourceRow(source, table_name)
+        end,
         column_names
     ))
 end
-function translate_dispatch(::typeof(getproperty), source_tables::SourceTables, table_name)
-    SQLExpression(:FROM, translate(table_name))
+function translate_dispatch(::typeof(getproperty), source_tables::SourceTables, table_name; other = false, options...)
+    if other
+        translate(table_name)
+    else
+        SQLExpression(:FROM, translate(table_name))
+    end
 end
-function translate_dispatch(::typeof(getproperty), source_row::SourceRow, column_name)
-    SQLExpression(:., source_row.table_name, translate(column_name))
+function translate_dispatch(::typeof(getproperty), source_row::SourceRow, column_name; options...)
+    translate(column_name; options...)
+end
+
+function translate_dispatch(::typeof(getproperty), source_row::SourceOtherRow, column_name; options...)
+    SQLExpression(:., source_row.table_name, translate(column_name; options...))
 end
 
 """
@@ -70,47 +82,62 @@ export if_else
 @code_instead if_else SourceCode Any SourceCode
 @code_instead if_else SourceCode SourceCode Any
 @code_instead if_else SourceCode SourceCode SourceCode
-@simple_translate ::typeof(if_else) :IF
+@translate ::typeof(if_else) :IF
 
 @code_instead in SourceCode Any
 @code_instead in Any SourceCode
 @code_instead in SourceCode SourceCode
-@simple_translate ::typeof(in) :IN
+@translate ::typeof(in) :IN
 
 @code_instead isequal SourceCode Any
 @code_instead isequal Any SourceCode
 @code_instead isequal SourceCode SourceCode
-@simple_translate ::typeof(isequal) Symbol("IS NOT DISTINCT FROM")
+@translate ::typeof(isequal) Symbol("IS NOT DISTINCT FROM")
 
 @code_instead isless SourceCode Any
 @code_instead isless Any SourceCode
 @code_instead isless SourceCode SourceCode
-@simple_translate ::typeof(isless) :<
+@translate ::typeof(isless) :<
 
 @code_instead ismissing SourceCode
-@simple_translate ::typeof(ismissing) Symbol("IS NULL")
+@translate ::typeof(ismissing) Symbol("IS NULL")
 
 @code_instead occursin AbstractString SourceCode
 @code_instead occursin Regex SourceCode
-translate_dispatch(::typeof(occursin), needle::AbstractString, haystack) =
+translate_dispatch(::typeof(occursin), needle::AbstractString, haystack; options...) =
     SQLExpression(
         :LIKE,
-        translate(haystack),
+        translate(haystack; options...),
         string('%', needle, '%')
     )
-translate_dispatch(::typeof(occursin), needle::Regex, haystack) =
+translate_dispatch(::typeof(occursin), needle::Regex, haystack; options...) =
     SQLExpression(
         :LIKE,
-        translate(haystack),
+        translate(haystack; options...),
         replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_")
     )
-@simple_translate ::typeof(occursin) :LIKE
+@translate ::typeof(occursin) :LIKE
 
 @code_instead startswith SourceCode Any
 @code_instead startswith Any SourceCode
 @code_instead startswith SourceCode SourceCode
 
-translate_dispatch(::typeof(startswith), full, prefix::AbstractString) =
+
+@code_instead secondary SourceCode
+"""
+A dummy function for marking a secondary table
+"""
+function secondary(something)
+    something
+end
+translate_dispatch(::typeof(startswith), full, prefix::AbstractString; options...) =
+    SQLExpression(
+        :LIKE,
+        translate(full),
+        string(prefix, '%')
+    )
+
+translate_dispatch(::typeof(startswith), full, prefix::AbstractString; options...) =
     SQLExpression(
         :LIKE,
         translate(full),

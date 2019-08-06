@@ -44,4 +44,9 @@ database = SourceTables(DB(filename))
     @thenby(_.Name) |>
     DataTable).Bytes) == 1059546140
 
+@test database.Artist |>
+    @join(database.Album, _.ArtistId, _.ArtistId, {_.ArtistId, __.AlbumId}) |>
+    DataTable |>
+    length == 347
+
 end

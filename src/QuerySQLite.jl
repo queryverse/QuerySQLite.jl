@@ -21,10 +21,10 @@ import TableTraits: isiterabletable
 
 include("utilities.jl")
 include("source.jl")
-include("translate.jl")
-include("realize.jl")
 include("iterate.jl")
+include("translate.jl")
 include("library.jl")
 include("QueryOperators.jl")
+include("realize.jl")
 
 end # module

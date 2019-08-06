@@ -32,7 +32,7 @@ export get_column_names
 struct SourceTables{Source}
     source::Source
 end
-export SourceTables
+export SourceTables5
 
 get_source(source_tables::SourceTables) = getfield(source_tables, :source)
 
@@ -43,6 +43,11 @@ function getproperty(source_tables::SourceTables, table_name::Symbol)
 end
 
 struct SourceRow{Source}
+    source::Source
+    table_name::Symbol
+end
+
+struct SourceOtherRow{Source}
     source::Source
     table_name::Symbol
 end

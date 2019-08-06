@@ -1,7 +1,7 @@
 struct SQLiteCursor{Row}
     statement::Stmt
     status::RefValue{Cint}
-    cursor_model_row::RefValue{Int}
+    cursor_row::RefValue{Int}
 end
 
 function eltype(::SQLiteCursor{Row}) where {Row}
@@ -49,13 +49,13 @@ function iterate(cursor::SQLiteCursor{Row}) where {Row}
         nothing
     else
         named_tuple = generate_namedtuple(Row, cursor)
-        cursor.cursor_model_row[] = 1
+        cursor.cursor_row[] = 1
         named_tuple, 1
     end
 end
 
 function iterate(cursor::SQLiteCursor{Row}, state) where {Row}
-    if state != cursor.cursor_model_row[]
+    if state != cursor.cursor_row[]
         error("State does not match SQLiteCursor model_row")
     else
         cursor.status[] = sqlite3_step(cursor.statement.handle)
@@ -63,7 +63,7 @@ function iterate(cursor::SQLiteCursor{Row}, state) where {Row}
             nothing
         else
             named_tuple = generate_namedtuple(Row, cursor)
-            cursor.cursor_model_row[] = state + 1
+            cursor.cursor_row[] = state + 1
             named_tuple, state + 1
         end
     end

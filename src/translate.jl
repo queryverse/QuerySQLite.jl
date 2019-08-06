@@ -55,35 +55,38 @@ function split_node(node::Expr)
     end
 end
 
-function model_row_dispatch(arbitrary_function, iterator, arguments...)
-    model_row(iterator)
+function model_row_dispatch(arbitrary_function, iterator, arguments...; options...)
+    model_row(iterator; options...)
 end
-function model_row(node::Expr)
-    model_row_dispatch(split_node(node)...)
+function model_row(node::Expr; options...)
+    model_row_dispatch(split_node(node)...; options...)
 end
 
-function translate(something)
+function translate(something; options...)
     something
 end
-function translate(source_row::SourceRow)
+function translate(source_row::SourceRow; options...)
     source_row.table_name
 end
-function translate(node::Expr)
-    translate_dispatch(split_node(node)...)
+function translate(source_row::SourceOtherRow; options...)
+end
+function translate(node::Expr; options...)
+    translate_dispatch(split_node(node)...; options...)
 end
 
-function simple_translate(location, function_type, SQL_call)
-    arguments = gensym()
-    Expr(:function,
-        Expr(:call, :translate_dispatch, function_type, Expr(:..., arguments)),
-        Expr(:block, location, Expr(:call,
-            SQLExpression,
-            SQL_call,
-            Expr(:..., Expr(:call, map_unrolled, translate, arguments))
-        ))
+function translate_default(location, function_type, SQL_call)
+    result = :(
+        function translate_dispatch($function_type, arguments...; options...)
+            $SQLExpression($SQL_call, $map_unrolled(
+                argument -> $translate(argument; options...),
+                arguments
+            )...)
+        end
     )
+    result.args[2].args[1] = location
+    result
 end
 
-macro simple_translate(a_function, SQL_call)
-    simple_translate(__source__, a_function, SQL_call) |> esc
+macro translate(a_function, SQL_call)
+    translate_default(__source__, a_function, SQL_call) |> esc
 end
