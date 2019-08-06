@@ -1,11 +1,12 @@
 using Query
 using Test
-using QuerySQLite: SourceTables
-using SQLite: DB
+using QuerySQLite
+import SQLite
 using QueryTables
 
 filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
-database = SourceTables(DB(filename))
+database = Database(filename)
+database2 = Database(SQLite.DB(filename))
 
 @testset "QuerySQLite" begin
 
@@ -15,7 +16,7 @@ database = SourceTables(DB(filename))
     first |>
     propertynames == (:TrackId, :Name, :Composer, :UnitPrice)
 
-@test (database.Customer |>
+@test (database2.Customer |>
     @map({_.City, _.Country}) |>
     @orderby(_.Country) |>
     DataTable).Country[1] == "Argentina"

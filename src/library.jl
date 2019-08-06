@@ -27,7 +27,7 @@
 function get_column(source_row, column_name)
     SourceCode(source_row.source, Expr(:call, getproperty, source_row, column_name))
 end
-function model_row_dispatch(::typeof(getproperty), source_tables::SourceTables, table_name; other = false, options...)
+function model_row_dispatch(::typeof(getproperty), source_tables::Database, table_name; other = false, options...)
     source = get_source(source_tables)
     column_names = get_column_names(source, table_name)
     NamedTuple{column_names}(partial_map(
@@ -40,7 +40,7 @@ function model_row_dispatch(::typeof(getproperty), source_tables::SourceTables, 
         column_names
     ))
 end
-function translate_dispatch(::typeof(getproperty), source_tables::SourceTables, table_name; other = false, options...)
+function translate_dispatch(::typeof(getproperty), source_tables::Database, table_name; other = false, options...)
     if other
         translate(table_name)
     else
