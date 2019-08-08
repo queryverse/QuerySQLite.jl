@@ -39,11 +39,13 @@ database2 = Database(SQLite.DB(filename))
     @drop(10) |>
     DataTable).Name)  == "C.O.D."
 
-@test first((database.Track |>
-    @map({_.TrackId, _.Name, _.Bytes}) |>
-    @orderby_descending(_.Bytes) |>
-    @thenby(_.Name) |>
-    DataTable).Bytes) == 1059546140
+@test first((
+    @from i in database.Track begin
+        @orderby descending(i.Bytes), i.Name
+        @select {i.TrackId, i.Name, i.Bytes}
+        @collect DataTable
+    end
+    ).Bytes) == 1059546140
 
 @test database.Artist |>
     @join(database.Album, _.ArtistId, _.ArtistId, {_.ArtistId, __.AlbumId}) |>
