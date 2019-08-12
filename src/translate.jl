@@ -87,6 +87,6 @@ function translate_default(location, function_type, SQL_call)
     result
 end
 
-macro translate(a_function, SQL_call)
+macro translate_default(a_function, SQL_call)
     translate_default(__source__, a_function, SQL_call) |> esc
 end

@@ -6,13 +6,21 @@ function as(new_name_model_row::Pair{Symbol, <: SourceCode}; options...)
 end
 
 @code_instead QueryOperators.drop SourceCode Integer
-@translate ::typeof(QueryOperators.drop) :OFFSET
+@translate_default ::typeof(QueryOperators.drop) :OFFSET
 
 @code_instead QueryOperators.filter SourceCode Any Expr
 function translate_dispatch(::typeof(QueryOperators.filter), iterator, call, call_expression; options...)
     SQLExpression(:WHERE,
         translate(iterator; options...),
         translate(call(model_row(iterator)).code; options...)
+    )
+end
+
+@code_instead QueryOperators.groupby SourceCode Any Expr Any Expr
+function translate_dispatch(::typeof(QueryOperators.groupby), ungrouped, group_function, group_function_expression, map_selector, map_function_expression; options...)
+    SQLExpression(Symbol("GROUP BY"),
+        translate(ungrouped; options...),
+        translate(group_function(model_row(ungrouped)).code; options...)
     )
 end
 
@@ -88,7 +96,7 @@ function translate_dispatch(::typeof(QueryOperators.map), select_table, call, ca
 end
 
 @code_instead QueryOperators.take SourceCode Any
-@translate ::typeof(QueryOperators.take) :LIMIT
+@translate_default ::typeof(QueryOperators.take) :LIMIT
 
 @code_instead QueryOperators.unique SourceCode Any Expr
 function translate_dispatch(::typeof(QueryOperators.unique), repeated, key_function, key_function_expression; options...)
