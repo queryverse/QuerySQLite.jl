@@ -4,7 +4,7 @@ struct SourceCode{Source}
     code::Expr
 end
 
-# Every time two `SourceCode` objects are combined, check to see whether they both come from the same source
+# Every time `SourceCode` objects are combined, check to see whether they all come from the same source
 function pop_sources!(sources, something)
     something
 end

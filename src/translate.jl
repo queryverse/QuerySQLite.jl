@@ -16,10 +16,10 @@ function translate(call::Expr; primary = true)
     translate_call(split_call(call)...; primary = primary)
 end
 
-# The default translate implementation assumes a 1-1 mapping between Julia functions and SQL functions
-function translate_default(location, function_type, SQL_call)
+# A 1-1 mapping between Julia functions and SQL functions
+function translate_default(location, a_function, SQL_call)
     result = :(
-        function translate_call(::typeof($function_type), arguments...; primary = true)
+        function translate_call(::typeof($a_function), arguments...; primary = true)
             $SQLExpression($SQL_call, $map_unrolled(
                 argument -> $translate(argument; primary = primary),
                 arguments
@@ -144,6 +144,7 @@ translate_call(::typeof(occursin), needle::Regex, haystack; primary = true) =
     SQLExpression(
         :LIKE,
         translate(haystack; primary = primary),
+        # * => %, . => _
         replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_")
     )
 @translate_default occursin :LIKE
