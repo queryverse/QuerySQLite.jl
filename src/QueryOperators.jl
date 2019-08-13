@@ -17,12 +17,6 @@ function translate_dispatch(::typeof(QueryOperators.filter), iterator, call, cal
 end
 
 @code_instead QueryOperators.groupby SourceCode Any Expr Any Expr
-<<<<<<< HEAD
-function translate_dispatch(::typeof(QueryOperators.groupby), ungrouped, group_function, group_function_expression, map_selector, map_function_expression; options...)
-    SQLExpression(Symbol("GROUP BY"),
-        translate(ungrouped; options...),
-        translate(group_function(model_row(ungrouped)).code; options...)
-=======
 
 struct GroupOfRows{Group, Row}
     group::Group
@@ -52,7 +46,6 @@ function translate_dispatch(::typeof(QueryOperators.groupby), ungrouped, group_f
     SQLExpression(Symbol("GROUP BY"),
         translate(ungrouped; options...),
         translate(group_function(model).code; options...)
->>>>>>> 60e2521
     )
 end
 
