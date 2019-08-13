@@ -100,11 +100,15 @@ function realize(sql_expression::SQLExpression)
 end
 
 function realize_final(sql_expression::SQLExpression)
-    if sql_expression.call == :FROM
+    if sql_expression.call in (:FROM, Symbol("GROUP BY"), Symbol("INNER JOIN"))
         realize(SQLExpression(:SELECT, sql_expression, :*))
     else
         realize(sql_expression)
     end
+end
+
+function realize_final(something)
+    something
 end
 
 text(source_code::SourceCode) =

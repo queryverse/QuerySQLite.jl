@@ -23,8 +23,8 @@ struct GroupOfRows{Group, Row}
     row::Row
 end
 
-function key(group_of_rows::GroupOfRows)
-    translate(getfield(group_of_rows, :group))
+function QueryOperators.key(group_of_rows::GroupOfRows)
+    getfield(group_of_rows, :group)
 end
 
 function getproperty(group_of_rows::GroupOfRows, column_name::Symbol)
