@@ -68,8 +68,6 @@ end
 function translate(source_row::SourceRow; options...)
     source_row.table_name
 end
-function translate(source_row::SourceOtherRow; options...)
-end
 function translate(node::Expr; options...)
     translate_dispatch(split_node(node)...; options...)
 end

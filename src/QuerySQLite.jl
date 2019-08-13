@@ -1,7 +1,7 @@
 module QuerySQLite
 
-import Base: !, &, |, ==, !=, coalesce, collect, eltype, getproperty, in,
-isdone, isequal, isless, ismissing, iterate, IteratorSize, occursin, show,
+import Base: !, &, |, ==, !=, coalesce, collect, eltype, getproperty, length,
+in, isdone, isequal, isless, ismissing, iterate, IteratorSize, occursin, show,
 showerror, startswith
 using Base: Generator, NamedTuple, RefValue, SizeUnknown, tail
 using Base.Meta: quot

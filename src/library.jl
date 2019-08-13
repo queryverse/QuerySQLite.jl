@@ -98,6 +98,12 @@ export if_else
 @code_instead isless Any SourceCode
 @code_instead isless SourceCode SourceCode
 @translate_default ::typeof(isless) :<
+<<<<<<< HEAD
+=======
+
+@code_instead length SourceCode
+@translate_default ::typeof(length) :COUNT
+>>>>>>> 60e2521
 
 @code_instead ismissing SourceCode
 @translate_default ::typeof(ismissing) Symbol("IS NULL")
@@ -130,13 +136,6 @@ A dummy function for marking a secondary table
 function secondary(something)
     something
 end
-translate_dispatch(::typeof(startswith), full, prefix::AbstractString; options...) =
-    SQLExpression(
-        :LIKE,
-        translate(full),
-        string(prefix, '%')
-    )
-
 translate_dispatch(::typeof(startswith), full, prefix::AbstractString; options...) =
     SQLExpression(
         :LIKE,

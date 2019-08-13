@@ -17,32 +17,79 @@ function translate_dispatch(::typeof(QueryOperators.filter), iterator, call, cal
 end
 
 @code_instead QueryOperators.groupby SourceCode Any Expr Any Expr
+<<<<<<< HEAD
 function translate_dispatch(::typeof(QueryOperators.groupby), ungrouped, group_function, group_function_expression, map_selector, map_function_expression; options...)
     SQLExpression(Symbol("GROUP BY"),
         translate(ungrouped; options...),
         translate(group_function(model_row(ungrouped)).code; options...)
+=======
+
+struct GroupOfRows{Group, Row}
+    group::Group
+    row::Row
+end
+
+function key(group_of_rows::GroupOfRows)
+    translate(getfield(group_of_rows, :group))
+end
+
+function getproperty(group_of_rows::GroupOfRows, column_name::Symbol)
+    getproperty(getfield(group_of_rows, :row), column_name)
+end
+
+function length(group_of_rows::GroupOfRows)
+    length(first(getfield(group_of_rows, :row)))
+end
+
+function model_row_dispatch(::typeof(QueryOperators.groupby), ungrouped, group_function, group_function_expression, map_selector, map_function_expression; options...)
+    model = model_row(ungrouped; options...)
+    GroupOfRows(group_function(model), model)
+end
+
+function translate_dispatch(::typeof(QueryOperators.groupby), ungrouped, group_function, group_function_expression, map_selector, map_function_expression; options...)
+    # TODO: map_selector
+    model = model_row(ungrouped; options...)
+    SQLExpression(Symbol("GROUP BY"),
+        translate(ungrouped; options...),
+        translate(group_function(model).code; options...)
+>>>>>>> 60e2521
     )
 end
 
 @code_instead QueryOperators.join SourceCode SourceCode Any Expr Any Expr Any Expr
 function translate_dispatch(::typeof(QueryOperators.join), source1, source2, key1, key1_expression, key2, key2_expression, combine, combine_expression; options...)
-    model_row_1 = model_row(source1; other = true)
-    model_row_2 = model_row(source2; other = true)
-    SQLExpression(:ON,
-        SQLExpression(Symbol("INNER JOIN"),
-            SQLExpression(:SELECT,
+    model_row_1 = model_row(source1; other = true, options...)
+    model_row_2 = model_row(source2; other = true, options...)
+    SQLExpression(:SELECT,
+        SQLExpression(:ON,
+            SQLExpression(Symbol("INNER JOIN"),
                 translate(source1; options...),
-                Generator(
-                    pair -> as(pair; options...),
-                    pairs(combine(model_row_1, model_row_2))
-                )...
+                translate(source2; other = true, options...)
             ),
-            translate(source2; other = true, options...)
+            SQLExpression(:(=),
+                translate(key1(model_row_1).code; options...),
+                translate(key2(model_row_2).code; other = true, options...)
+            )
         ),
-        SQLExpression(:(=),
-            translate(key1(model_row_1).code; options...),
-            translate(key2(model_row_2).code; other = true, options...)
-        )
+        Generator(
+            pair -> as(pair; options...),
+            pairs(combine(model_row_1, model_row_2))
+        )...
+    )
+end
+
+@code_instead QueryOperators.map SourceCode Any Expr
+function model_row_dispatch(::typeof(QueryOperators.map), iterator, call, call_expression; options...)
+    call(model_row(iterator; options...))
+end
+
+function translate_dispatch(::typeof(QueryOperators.map), select_table, call, call_expression; options...)
+    SQLExpression(
+        Symbol("SELECT"), translate(select_table; options...),
+        Generator(
+            pair -> as(pair; options...),
+            pairs(call(model_row(select_table; options...)))
+        )...
     )
 end
 
@@ -77,21 +124,6 @@ function translate_dispatch(::typeof(QueryOperators.thenby_descending), unordere
         SQLExpression(:DESC,
             translate(key_function(model_row(unordered)).code; options...)
         )
-    )
-end
-
-@code_instead QueryOperators.map SourceCode Any Expr
-function model_row_dispatch(::typeof(QueryOperators.map), iterator, call, call_expression; options...)
-    call(model_row(iterator; options...))
-end
-
-function translate_dispatch(::typeof(QueryOperators.map), select_table, call, call_expression; options...)
-    SQLExpression(
-        Symbol("SELECT"), translate(select_table; options...),
-        Generator(
-            pair -> as(pair; options...),
-            pairs(call(model_row(select_table; options...)))
-        )...
     )
 end
 
