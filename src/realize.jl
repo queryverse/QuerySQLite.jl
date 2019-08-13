@@ -75,7 +75,7 @@ function realize(something)
 end
 
 function realize(sql_expression::SQLExpression)
-    if in(sql_expression.call, (:COALESCE,))
+    if in(sql_expression.call, (:COALESCE, :COUNT))
         function_call(sql_expression)
     elseif sql_expression.call == :IF && length(sql_expression.arguments) == 3
         string("CASE WHEN", realize(sql_expressions.arguments[1]),

@@ -52,4 +52,10 @@ database2 = Database(SQLite.DB(filename))
     DataTable |>
     length == 347
 
+@test (database.Track |>
+    @groupby(_.AlbumId) |>
+    @map({AlbumId = key(_), Count = length(_.AlbumId)}) |>
+    collect |>
+    first).Count == 10
+
 end

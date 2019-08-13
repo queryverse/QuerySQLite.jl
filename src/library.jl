@@ -1,28 +1,28 @@
 @code_instead (==) SourceCode Any
 @code_instead (==) Any SourceCode
 @code_instead (==) SourceCode SourceCode
-@translate ::typeof(==) :(=)
+@translate_default ::typeof(==) :(=)
 
 @code_instead (!=) SourceCode Any
 @code_instead (!=) Any SourceCode
 @code_instead (!=) SourceCode SourceCode
-@translate ::typeof(!=) Symbol("<>")
+@translate_default ::typeof(!=) Symbol("<>")
 
 @code_instead (!) SourceCode
-@translate ::typeof(!) :NOT
+@translate_default ::typeof(!) :NOT
 
 @code_instead (&) SourceCode Any
 @code_instead (&) Any SourceCode
 @code_instead (&) SourceCode SourceCode
-@translate ::typeof(&) :AND
+@translate_default ::typeof(&) :AND
 
 @code_instead (|) SourceCode Any
 @code_instead (|) Any SourceCode
 @code_instead (|) SourceCode SourceCode
-@translate ::typeof(|) :OR
+@translate_default ::typeof(|) :OR
 
 @code_instead coalesce SourceCode Vararg{Any}
-@translate ::typeof(coalesce) :COALESCE
+@translate_default ::typeof(coalesce) :COALESCE
 
 function get_column(source_row, column_name)
     SourceCode(source_row.source, Expr(:call, getproperty, source_row, column_name))
@@ -82,25 +82,28 @@ export if_else
 @code_instead if_else SourceCode Any SourceCode
 @code_instead if_else SourceCode SourceCode Any
 @code_instead if_else SourceCode SourceCode SourceCode
-@translate ::typeof(if_else) :IF
+@translate_default ::typeof(if_else) :IF
 
 @code_instead in SourceCode Any
 @code_instead in Any SourceCode
 @code_instead in SourceCode SourceCode
-@translate ::typeof(in) :IN
+@translate_default ::typeof(in) :IN
 
 @code_instead isequal SourceCode Any
 @code_instead isequal Any SourceCode
 @code_instead isequal SourceCode SourceCode
-@translate ::typeof(isequal) Symbol("IS NOT DISTINCT FROM")
+@translate_default ::typeof(isequal) Symbol("IS NOT DISTINCT FROM")
 
 @code_instead isless SourceCode Any
 @code_instead isless Any SourceCode
 @code_instead isless SourceCode SourceCode
-@translate ::typeof(isless) :<
+@translate_default ::typeof(isless) :<
+
+@code_instead length SourceCode
+@translate_default ::typeof(length) :COUNT
 
 @code_instead ismissing SourceCode
-@translate ::typeof(ismissing) Symbol("IS NULL")
+@translate_default ::typeof(ismissing) Symbol("IS NULL")
 
 @code_instead occursin AbstractString SourceCode
 @code_instead occursin Regex SourceCode
@@ -116,7 +119,7 @@ translate_dispatch(::typeof(occursin), needle::Regex, haystack; options...) =
         translate(haystack; options...),
         replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_")
     )
-@translate ::typeof(occursin) :LIKE
+@translate_default ::typeof(occursin) :LIKE
 
 @code_instead startswith SourceCode Any
 @code_instead startswith Any SourceCode
@@ -130,13 +133,6 @@ A dummy function for marking a secondary table
 function secondary(something)
     something
 end
-translate_dispatch(::typeof(startswith), full, prefix::AbstractString; options...) =
-    SQLExpression(
-        :LIKE,
-        translate(full),
-        string(prefix, '%')
-    )
-
 translate_dispatch(::typeof(startswith), full, prefix::AbstractString; options...) =
     SQLExpression(
         :LIKE,
