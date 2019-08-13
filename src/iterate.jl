@@ -1,3 +1,5 @@
+# This section of the code hijacks SQLite internals to make queryverse-compatible iterators
+# TODO: submit as a PR to SQLite
 struct SQLiteCursor{Row}
     statement::Stmt
     status::RefValue{Cint}
@@ -99,7 +101,10 @@ end
 
 function getiterator(source_code::SourceCode)
     # TODO REVIEW
-    statement = Stmt(source_code.source, text(source_code))
+    statement = Stmt(
+        source_code.source,
+        string(finalize(translate(source_code.code)))
+    )
     # bind!(statement, values)
     status = execute!(statement)
     handle = statement.handle
@@ -115,6 +120,7 @@ function getiterator(source_code::SourceCode)
     }}(statement, Ref(status), Ref(0))
 end
 
+# Use default show methods from the queryverse
 function show(stream::IO, source::SourceCode)
     printtable(stream, getiterator(source), "SQLite query result")
 end
