@@ -13,13 +13,15 @@ function translate(source_row::SourceRow; primary = true)
     source_row.table_name
 end
 function translate(call::Expr; primary = true)
-    translate_call(split_call(call)...; primary = primary)
+    arguments, keywords = split_call(call)
+    # TODO: figure out a way for users to pass a keyword named primary
+    translate_call(arguments...; primary = primary, keywords...)
 end
 
 # A 1-1 mapping between Julia functions and SQL functions
-function translate_default(location, a_function, SQL_call)
+function translate_default(location, function_type, SQL_call)
     result = :(
-        function translate_call(::typeof($a_function), arguments...; primary = true)
+        function translate_call($function_type, arguments...; primary = true)
             $SQLExpression($SQL_call, $map_unrolled(
                 argument -> $translate(argument; primary = primary),
                 arguments
@@ -34,15 +36,23 @@ macro translate_default(a_function, SQL_call)
     translate_default(__source__, a_function, SQL_call) |> esc
 end
 
-@translate_default (==) :(=)
+@translate_default ::typeof(==) :(=)
 
-@translate_default (!=) Symbol("<>")
+@translate_default ::typeof(!=) Symbol("<>")
 
-@translate_default (!) :NOT
+@translate_default ::typeof(!) :NOT
 
-@translate_default (&) :AND
+@translate_default ::typeof(&) :AND
 
-@translate_default (|) :OR
+@translate_default ::typeof(|) :OR
+
+@translate_default ::typeof(*) :*
+
+@translate_default ::typeof(+) :+
+
+@translate_default ::typeof(%) :%
+
+@translate_default ::typeof(abs) :ABS
 
 function as(pair; primary = true)
     SQLExpression(:AS,
@@ -51,9 +61,11 @@ function as(pair; primary = true)
     )
 end
 
-@translate_default coalesce :COALESCE
+@translate_default ::Type{Char} :CHAR
 
-@translate_default QueryOperators.drop :OFFSET
+@translate_default ::typeof(coalesce) :COALESCE
+
+@translate_default ::typeof(QueryOperators.drop) :OFFSET
 
 function translate_call(::typeof(QueryOperators.filter), iterator, call, call_expression; primary = true)
     SQLExpression(:WHERE,
@@ -88,15 +100,15 @@ function translate_call(::typeof(QueryOperators.groupby), ungrouped, group_funct
     )
 end
 
-@translate_default if_else :CASE
+@translate_default ::typeof(if_else) :CASE
 
-@translate_default in :IN
+@translate_default ::typeof(in) :IN
 
-@translate_default isequal Symbol("IS NOT DISTINCT FROM")
+@translate_default ::typeof(isequal) Symbol("IS NOT DISTINCT FROM")
 
-@translate_default isless :<
+@translate_default ::typeof(isless) :<
 
-@translate_default ismissing Symbol("IS NULL")
+@translate_default ::typeof(ismissing) Symbol("IS NULL")
 
 function translate_call(::typeof(QueryOperators.join), source1, source2, key1, key1_expression, key2, key2_expression, combine, combine_expression; primary = true)
     model_row_1 = model_row(source1)
@@ -122,7 +134,9 @@ function translate_call(::typeof(QueryOperators.join), source1, source2, key1, k
     )
 end
 
-@translate_default length :COUNT
+@translate_default ::typeof(length) :COUNT
+
+@translate_default ::typeof(lowercase) :LOWER
 
 function translate_call(::typeof(QueryOperators.map), select_table, call, call_expression; primary = true)
     SQLExpression(
@@ -133,6 +147,10 @@ function translate_call(::typeof(QueryOperators.map), select_table, call, call_e
         )...
     )
 end
+
+@translate_default ::typeof(max) :max
+
+@translate_default ::typeof(min) :min
 
 translate_call(::typeof(occursin), needle::AbstractString, haystack; primary = true) =
     SQLExpression(
@@ -147,7 +165,7 @@ translate_call(::typeof(occursin), needle::Regex, haystack; primary = true) =
         # * => %, . => _
         replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_")
     )
-@translate_default occursin :LIKE
+@translate_default ::typeof(occursin) :LIKE
 
 function translate_call(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression; primary = true)
     SQLExpression(Symbol("ORDER BY"),
@@ -172,7 +190,9 @@ translate_call(::typeof(startswith), full, prefix::AbstractString; primary = pri
         string(prefix, '%')
     )
 
-@translate_default QueryOperators.take :LIMIT
+@translate_default ::typeof(string) :||
+
+@translate_default ::typeof(QueryOperators.take) :LIMIT
 
 function translate_call(::typeof(QueryOperators.thenby), unordered, key_function, key_function_expression; primary = true)
     original = translate(unordered; primary = primary)
@@ -194,3 +214,5 @@ function translate_call(::typeof(QueryOperators.unique), repeated, key_function,
     result = translate(repeated; primary = primary)
     SQLExpression(Symbol(string(result.call, " DISTINCT")), result.arguments...)
 end
+
+@translate_default ::typeof(uppercase) :UPPER

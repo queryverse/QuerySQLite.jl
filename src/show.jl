@@ -17,12 +17,16 @@ function tight_infix(io, call, argument1, argument2)
     print(io, argument2)
 end
 
-function infix(io, call, argument1, argument2)
+function infix(io, call, argument1, argument2, arguments...)
     print(io, argument1)
     print(io, ' ')
     print(io, call)
     print(io, ' ')
-    print(io, argument2)
+    infix(io, call, argument2, arguments...)
+end
+
+function infix(io, call, argument1)
+    print(io, argument1)
 end
 
 function head_call_tail(io, call, argument1, arguments...)
@@ -70,7 +74,17 @@ function show(io::IO, sql_expression::SQLExpression)
         tight_infix(io, call, arguments...)
     elseif call === :(=)
         infix(io, call, arguments...)
+    elseif call === :<
+        infix(io, call, arguments...)
     elseif call === Symbol("<>")
+        infix(io, call, arguments...)
+    elseif call === Symbol("||")
+        infix(io, call, arguments...)
+    elseif call === :*
+        infix(io, call, arguments...)
+    elseif call === :+
+        infix(io, call, arguments...)
+    elseif call === :%
         infix(io, call, arguments...)
     elseif call === :AND
         infix(io, call, arguments...)
@@ -110,6 +124,8 @@ function show(io::IO, sql_expression::SQLExpression)
         call_tail_head(io, call, arguments...)
     elseif call === Symbol("SELECT DISTINCT")
         call_tail_head(io, call, arguments...)
+    elseif call === :WHERE
+        infix(io, call, arguments...)
     else
         print(io, call)
         print(io, '(')

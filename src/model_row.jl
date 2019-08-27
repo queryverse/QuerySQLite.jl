@@ -6,7 +6,8 @@ end
 
 # The model row pass will build and modify a model of a row
 function model_row(call)
-    model_row_call(split_call(call)...)
+    arguments, keywords = split_call(call)
+    model_row_call(arguments...; keywords...)
 end
 
 # Very few functions modify the row model, so leave the row unchanged by default
@@ -16,7 +17,9 @@ end
 
 # Create a model row when getproperty is called on a Database
 function get_column(source_row, column_name)
-    SourceCode(source_row.source, Expr(:call, getproperty, source_row, column_name))
+    SourceCode(source_row.source,
+        Expr(:call, getproperty, source_row, column_name)
+    )
 end
 
 function model_row_call(::typeof(getproperty), source_tables::Database, table_name)

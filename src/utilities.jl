@@ -40,23 +40,22 @@ function as_symbols(them)
     map_unrolled(Symbol, (them...,))
 end
 
+split_keyword(keyword::Expr) =
+    if keyword.head === :kw
+        Pair(keyword.args[1], keyword.args[2])
+    else
+        error("Cannot split keyword $keyword")
+    end
+
 # Split a function call into its pieces
 # Normalize non-function-like patterns into function calls
 function split_call(call_expression::Expr)
-    if @capture call_expression call_(arguments__)
-        if call == ifelse
-            if_else
-        else
-            call
-        end, arguments...
-    elseif @capture call_expression left_ && right_
-        &, left, right
-    elseif @capture call_expression left_ || right_
-        |, left, right
-    elseif @capture call_expression if condition_ yes_ else no_ end
-        if_else, condition, yes, no
+    if @capture call_expression call_(arguments__; keywords__)
+        (call, arguments...), (; map(split_keyword, keywords)...)
+    elseif @capture call_expression call_(arguments__)
+        (call, arguments...), ()
     else
-        error("Cannot split $call_expression")
+        error("$call_expression is not a function call")
     end
 end
 
@@ -79,3 +78,20 @@ function if_else(switch, yes, no)
     ifelse(switch, yes, no)
 end
 export if_else
+
+"""
+    type_of(it)
+
+`typeof` that you can add methods to.
+
+```jldoctest
+julia> using QuerySQLite
+
+julia> type_of('a')
+Char
+```
+"""
+function type_of(it)
+    typeof(it)
+end
+export type_of

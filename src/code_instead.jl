@@ -5,21 +5,32 @@ struct SourceCode{Source}
 end
 
 # Every time `SourceCode` objects are combined, check to see whether they all come from the same source
-function pop_sources!(sources, something)
+function pop_source!(sources, something)
     something
 end
-function pop_sources!(sources, source_code::SourceCode)
+function pop_source!(sources, source_code::SourceCode)
     push!(sources, source_code.source)
     source_code.code
 end
+function key_pop_source!(sources, (key, source_code))
+    code = pop_source!(souces, source_code)
+    Expr(:kw, key, code)
+end
 
-function combine_sources(a_function, source_codes...)
+function combine_sources(a_function, source_codes...; key_source_codes...)
     sources = Set(Any[])
-    codes = partial_map(pop_sources!, sources, source_codes)
+    codes = partial_map(pop_source!, sources, source_codes)
+    key_codes = (
+        key_pop_source!(sources, key_source_code)
+        for key_source_code in key_source_codes
+    )
     if length(sources) != 1
         error("Expected exactly one source; got ($(sources...))")
     else
-        SourceCode(first(sources), Expr(:call, a_function, codes...))
+        SourceCode(
+            first(sources),
+            Expr(:call, a_function, Expr(:parameters, key_codes...), codes...)
+        )
     end
 end
 
@@ -43,10 +54,12 @@ end
 
 function code_instead(location, a_function, types...)
     arguments = ntuple(numbered_argument, length(types))
+    keywords = Expr(:parameters, Expr(:..., :keywords))
     Expr(:function,
-        Expr(:call, a_function, map_unrolled(assert_type, arguments, types)...),
+        Expr(:call, a_function, keywords, map_unrolled(assert_type, arguments, types)...),
         Expr(:block, location, Expr(:call,
             combine_sources,
+            keywords,
             a_function,
             map_unrolled(maybe_splat, arguments, types)...
         ))
@@ -80,6 +93,24 @@ end
 @code_instead (|) Any SourceCode
 @code_instead (|) SourceCode SourceCode
 
+@code_instead (*) SourceCode Any
+@code_instead (*) Any SourceCode
+@code_instead (*) SourceCode SourceCode
+
+@code_instead (+) SourceCode Any
+@code_instead (+) Any SourceCode
+@code_instead (+) SourceCode SourceCode
+
+@code_instead (%) SourceCode Any
+@code_instead (%) Any SourceCode
+@code_instead (%) SourceCode SourceCode
+
+@code_instead abs SourceCode
+
+@code_instead chop SourceCode
+
+@code_instead chop SourceCode
+
 @code_instead coalesce SourceCode Vararg{Any}
 
 @code_instead QueryOperators.drop SourceCode Integer
@@ -112,6 +143,9 @@ end
 
 @code_instead QueryOperators.join SourceCode SourceCode Any Expr Any Expr Any Expr
 
+@code_instead max SourceCode Vararg{Any}
+@code_instead min SourceCode Vararg{Any}
+
 @code_instead length SourceCode
 
 @code_instead QueryOperators.map SourceCode Any Expr
@@ -129,6 +163,10 @@ end
 @code_instead startswith Any SourceCode
 @code_instead startswith SourceCode SourceCode
 
+@code_instead string SourceCode Any
+@code_instead string Any SourceCode
+@code_instead string SourceCode SourceCode
+
 @code_instead QueryOperators.take SourceCode Any
 
 @code_instead QueryOperators.thenby SourceCode Any Expr
@@ -136,3 +174,5 @@ end
 @code_instead QueryOperators.thenby_descending SourceCode Any Expr
 
 @code_instead QueryOperators.unique SourceCode Any Expr
+
+@code_instead uppercase SourceCode
