@@ -57,13 +57,14 @@ database2 = Database(DB(filename))
     @map({AlbumId = key(_), Count = length(_.AlbumId)}) |>
     collect |>
     first).Count == 10
+
 end
 
 @testset "Systematic tests" begin
 
 filename = joinpath(@__DIR__, "test.sqlite")
 connection = DB(filename)
-
+execute!(Stmt(connection, """DROP TABLE IF EXISTS test"""))
 execute!(Stmt(connection, """
     CREATE TABLE test (
         a Int,
@@ -74,7 +75,6 @@ execute!(Stmt(connection, """
     INSERT INTO test VALUES(0, 1, -1)
 """))
 database = Database(connection)
-
 result =
     database.test |>
     @map({
@@ -86,7 +86,8 @@ result =
         h = _.a * _.b,
         i = _.a + _.b,
         j = _.a % _.b,
-        k = abs(_.c)
+        k = abs(_.c),
+        l = _.a in (0, 1)
     }) |>
     collect |>
     first
@@ -100,7 +101,10 @@ result =
 @test result.i == 1
 @test result.j == 0
 @test result.k == 1
+@test result.l == 1
 
 drop!(connection, "test")
+
+@test_throws ArgumentError Database("file.not_sqlite")
 
 end

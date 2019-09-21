@@ -5,6 +5,14 @@ function prefix(io, call, argument1)
     print(io, argument1)
 end
 
+function parenthesize_prefix(io, call, argument1)
+    print(io, call)
+    print(io, ' ')
+    print(io, '(')
+    print(io, argument1)
+    print(io, ')')
+end
+
 function postfix(io, call, argument1)
     print(io, argument1)
     print(io, ' ')
@@ -14,6 +22,14 @@ end
 function tight_infix(io, call, argument1, argument2)
     print(io, argument1)
     print(io, call)
+    print(io, argument2)
+end
+
+function parenthesize_infix(io, call, argument1, argument2)
+    print(io, argument1)
+    print(io, ' ')
+    print(io, call)
+    print(io, ' ')
     print(io, argument2)
 end
 
@@ -89,13 +105,13 @@ function show(io::IO, sql_expression::SQLExpression)
     elseif call === :AND
         infix(io, call, arguments...)
     elseif call === :AS
-        infix(io, call, arguments...)
+        parenthesize_infix(io, call, arguments...)
     elseif call === :CASE
         case(io, call, arguments...)
     elseif call === :DESC
         postfix(io, call, arguments...)
     elseif call === :FROM
-        prefix(io, call, arguments...)
+        parenthesize_prefix(io, call, arguments...)
     elseif call === Symbol("GROUP BY")
         head_call_tail(io, call, arguments...)
     elseif call === :IN

@@ -95,7 +95,12 @@ function translate_call(::typeof(QueryOperators.groupby), ungrouped, group_funct
     # TODO: map_selector
     model = model_row(ungrouped)
     SQLExpression(Symbol("GROUP BY"),
-        translate(ungrouped; primary = primary),
+        SQLExpression(:AS, SQLExpression(:FROM, translate_call(
+            QueryOperators.map,
+            ungrouped,
+            map_selector, map_function_expression,
+            primary = primary
+        )), :__TABLE__),
         translate(group_function(model).code; primary = primary)
     )
 end

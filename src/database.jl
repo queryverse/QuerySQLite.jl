@@ -28,10 +28,10 @@ struct Database{Source}
 end
 
 function Database(filename::AbstractString)
-    if endswith(filename, "sqlite")
+    if endswith(filename, ".sqlite")
         Database(SQLite.DB(filename))
     else
-        error("Unsupported database type for $filename")
+        throw(ArgumentError("Unsupported database type for $filename"))
     end
 end
 
