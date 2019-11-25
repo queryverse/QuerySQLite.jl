@@ -79,6 +79,8 @@ function case(io, call, arguments...)
     print(io, call)
     print(io, ' ')
     when_then_else(io, arguments...)
+    print(io, ' ')
+    print(io, "END")
 end
 
 # Use the call to determine the syntax pattern

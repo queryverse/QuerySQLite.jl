@@ -157,20 +157,13 @@ end
 
 @translate_default ::typeof(min) :min
 
-translate_call(::typeof(occursin), needle::AbstractString, haystack; primary = true) =
-    SQLExpression(
-        :LIKE,
-        translate(haystack; primary = primary),
-        string('%', needle, '%')
-    )
 translate_call(::typeof(occursin), needle::Regex, haystack; primary = true) =
     SQLExpression(
         :LIKE,
         translate(haystack; primary = primary),
         # * => %, . => _
-        replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_")
+        string('"', replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_"), '"')
     )
-@translate_default ::typeof(occursin) :LIKE
 
 function translate_call(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression; primary = true)
     SQLExpression(Symbol("ORDER BY"),
@@ -187,13 +180,6 @@ function translate_call(::typeof(QueryOperators.orderby_descending), unordered, 
         )
     )
 end
-
-translate_call(::typeof(startswith), full, prefix::AbstractString; primary = primary) =
-    SQLExpression(
-        :LIKE,
-        translate(full),
-        string(prefix, '%')
-    )
 
 @translate_default ::typeof(string) :||
 
