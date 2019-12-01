@@ -1,8 +1,9 @@
+using QuerySQLite
 using Query
 using Test
-using QuerySQLite
 using SQLite: DB, drop!, execute!, Stmt
 using QueryTables
+using Statistics: mean
 
 @testset "SQLite tutorial" begin
 
@@ -61,16 +62,30 @@ database2 = Database(DB(filename))
     length == 347
 
 @test (database.Track |>
-    @groupby(_.AlbumId) |>
-    @map({AlbumId = key(_), Count = length(_.AlbumId)}) |>
-    collect |>
-    first).Count == 10
-
-@test (database.Track |>
     @map({_.Name, _.Milliseconds, _.Bytes, _.AlbumId}) |>
     @filter(_.AlbumId == 1) |>
     collect |>
     first).Name == "For Those About To Rock (We Salute You)"
+
+group_by_row =
+    database.Track |>
+    @groupby(_.AlbumId) |>
+    @map({
+        AlbumId = key(_),
+        length = length(_.AlbumId),
+        sum = sum(_.Milliseconds),
+        min = min(_.Milliseconds),
+        max = max(_.Milliseconds),
+        mean = mean(_.Milliseconds)
+    }) |>
+    collect |>
+    first
+
+@test group_by_row.AlbumId == 1
+@test group_by_row.length == 10
+@test group_by_row.sum == 2400415
+@test group_by_row.min == 199836
+@test group_by_row.mean == 240041.5
 
 end
 
@@ -85,10 +100,12 @@ execute!(Stmt(connection, """
         b Int,
         c Int,
         d Text,
-        e Int
+        e Int,
+        f Int,
+        g Text
     )"""))
 execute!(Stmt(connection, """
-    INSERT INTO test VALUES(0, 1, -1, "ab", NULL)
+    INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b")
 """))
 database = Database(connection)
 result =
@@ -113,10 +130,15 @@ result =
         if_else_test_6 = if_else(_.b, _.b, 0),
         if_else_test_7 = if_else(_.b, _.b, _.a),
         ismissing_test = ismissing(_.e),
+        lowercase_test = lowercase(_.d),
         max_test = max(_.b, 0),
         min_test = min(_.a, 1),
-        occursin_test = occursin(r"a.*", _.d),
-        uppercase_test = uppercase(_.d)
+        occursin_test = occursin(r"A.*", _.d),
+        uppercase_test = uppercase(_.d),
+        char_test = char(_.f),
+        instr_test_1 = instr(_.d, "b"),
+        instr_test_2 = instr("ab", _.g),
+        instr_test_3 = instr(_.d, _.g)
     }) |>
     collect |>
     first
@@ -144,9 +166,17 @@ result =
 @test result.min_test == 0
 @test result.occursin_test == 1
 @test result.uppercase_test == "AB"
+@test result.lowercase_test == "ab"
+@test result.char_test == "A"
+# TODO: fix
+@test_broken result.instr_test_1 == 2
+@test result.instr_test_2 == 2
+@test result.instr_test_3 == 2
 
 drop!(connection, "test")
 
 @test_throws ArgumentError Database("file.not_sqlite")
 
 end
+
+# TODO: add doctests as tests

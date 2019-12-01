@@ -16,11 +16,13 @@ import SQLite: getvalue
 using SQLite: columns, DB, execute!, generate_namedtuple, juliatype,
 SQLITE_DONE, SQLITE_NULL, SQLITE_ROW, sqlite3_column_count, sqlite3_column_name,
 sqlite3_column_type, sqlite3_step, sqlitevalue, Stmt, tables
+import Statistics: mean, sum
 using TableShowUtils: printdataresource, printHTMLtable, printtable
 import TableTraits: isiterabletable
 
 export Database
 
+include("functions.jl")
 include("utilities.jl")
 include("database.jl")
 include("code_instead.jl")

@@ -107,6 +107,8 @@ end
 
 @code_instead abs SourceCode
 
+@code_instead char SourceCode Vararg{Any}
+
 @code_instead coalesce SourceCode Vararg{Any}
 
 @code_instead QueryOperators.drop SourceCode Integer
@@ -126,6 +128,10 @@ end
 # TODO: add more methods
 @code_instead in SourceCode Any
 
+@code_instead instr SourceCode Any
+@code_instead instr Any SourceCode
+@code_instead instr SourceCode SourceCode
+
 @code_instead isequal SourceCode Any
 @code_instead isequal Any SourceCode
 @code_instead isequal SourceCode SourceCode
@@ -140,9 +146,13 @@ end
 
 @code_instead max SourceCode Vararg{Any}
 
+@code_instead mean SourceCode
+
 @code_instead min SourceCode Vararg{Any}
 
 @code_instead length SourceCode
+
+@code_instead lowercase SourceCode
 
 @code_instead QueryOperators.map SourceCode Any Expr
 
@@ -160,21 +170,15 @@ end
 
 @code_instead QueryOperators.thenby_descending SourceCode Any Expr
 
+@code_instead sum SourceCode
+
 # TODO: add more methods
 @code_instead QueryOperators.unique SourceCode Any Expr
 
 @code_instead uppercase SourceCode
 
 # TODO: add
-# char
-# glob
 # hex
-# ifnull
-# instr
-# like
-# lower
-# ltrim
-# nullif
 # printf
 # quote
 # random
@@ -185,14 +189,13 @@ end
 # trim
 # typeof
 # unicode
-# upper
 # zeroblob
-# avg
 # group_concat
-# sum
 # total
 # date
 # time
 # datetime
 # julianday
 # strftime
+
+# TODO: regex start and end

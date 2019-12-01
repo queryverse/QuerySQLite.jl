@@ -6,6 +6,10 @@ struct SQLExpression
     SQLExpression(call, arguments...) = new(call, arguments)
 end
 
+function translate(something::AbstractString; primary = true)
+    repr(something)
+end
+
 function translate(something; primary = true)
     something
 end
@@ -61,7 +65,7 @@ function as(pair; primary = true)
     )
 end
 
-@translate_default ::Type{Char} :CHAR
+@translate_default ::typeof(char) :CHAR
 
 @translate_default ::typeof(coalesce) :COALESCE
 
@@ -109,6 +113,8 @@ end
 
 @translate_default ::typeof(in) :IN
 
+@translate_default ::typeof(instr) :INSTR
+
 @translate_default ::typeof(isequal) Symbol("IS NOT DISTINCT FROM")
 
 @translate_default ::typeof(isless) :<
@@ -155,6 +161,8 @@ end
 
 @translate_default ::typeof(max) :max
 
+@translate_default ::typeof(mean) :AVG
+
 @translate_default ::typeof(min) :min
 
 translate_call(::typeof(occursin), needle::Regex, haystack; primary = true) =
@@ -182,6 +190,8 @@ function translate_call(::typeof(QueryOperators.orderby_descending), unordered, 
 end
 
 @translate_default ::typeof(string) :||
+
+@translate_default ::typeof(sum) :SUM
 
 @translate_default ::typeof(QueryOperators.take) :LIMIT
 
