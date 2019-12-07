@@ -117,6 +117,8 @@ end
 
 @code_instead QueryOperators.groupby SourceCode Any Expr Any Expr
 
+@code_instead hex SourceCode
+
 @code_instead if_else SourceCode Any Any
 @code_instead if_else Any SourceCode Any
 @code_instead if_else Any Any SourceCode
@@ -172,13 +174,15 @@ end
 
 @code_instead sum SourceCode
 
+@code_instead strip SourceCode
+@code_instead strip SourceCode Char
+
 # TODO: add more methods
 @code_instead QueryOperators.unique SourceCode Any Expr
 
 @code_instead uppercase SourceCode
 
 # TODO: add
-# hex
 # printf
 # quote
 # random
@@ -186,7 +190,6 @@ end
 # replace
 # round
 # substr
-# trim
 # typeof
 # unicode
 # zeroblob

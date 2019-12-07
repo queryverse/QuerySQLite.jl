@@ -66,3 +66,23 @@ function type_of(it)
     typeof(it)
 end
 export type_of
+
+"""
+    hex(it)
+
+Uppercase heximal representation
+
+```jldoctest
+julia> using QuerySQLite
+
+julia> hex("hello")
+"68656C6C6F"
+```
+"""
+function hex(it::Number)
+    uppercase(string(it, base = 16))
+end
+function hex(it::AbstractString)
+    join(hex(byte) for byte in codeunits(it))
+end
+export hex

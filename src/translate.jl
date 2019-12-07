@@ -6,7 +6,7 @@ struct SQLExpression
     SQLExpression(call, arguments...) = new(call, arguments)
 end
 
-function translate(something::AbstractString; primary = true)
+function translate(something::Union{Char, AbstractString}; primary = true)
     repr(something)
 end
 
@@ -68,6 +68,8 @@ end
 @translate_default ::typeof(char) :CHAR
 
 @translate_default ::typeof(coalesce) :COALESCE
+
+@translate_default ::typeof(hex) :HEX
 
 @translate_default ::typeof(QueryOperators.drop) :OFFSET
 
@@ -190,6 +192,8 @@ function translate_call(::typeof(QueryOperators.orderby_descending), unordered, 
 end
 
 @translate_default ::typeof(string) :||
+
+@translate_default ::typeof(strip) :TRIM
 
 @translate_default ::typeof(sum) :SUM
 

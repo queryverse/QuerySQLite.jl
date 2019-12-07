@@ -58,7 +58,7 @@ end
 
 function iterate(cursor::SQLiteCursor{Row}, state) where {Row}
     if state != cursor.cursor_row[]
-        error("State does not match SQLiteCursor model_row")
+        error("State does not match SQLiteCursor cursor_row")
     else
         cursor.status[] = sqlite3_step(cursor.statement.handle)
         if isdone(cursor)

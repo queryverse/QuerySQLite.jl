@@ -2,7 +2,7 @@ module QuerySQLite
 
 import Base: !, &, |, ==, !=, *, +, %, abs, Char, coalesce, collect, eltype, getproperty, length,
 lowercase, in, isdone, isequal, isless, ismissing, iterate, IteratorSize, max, min,
-occursin, rand, show, showerror, startswith, string, uppercase
+occursin, rand, show, showerror, startswith, string, strip, uppercase
 using Base: Generator, NamedTuple, RefValue, SizeUnknown, tail
 using Base.Meta: quot
 import Base.Multimedia: showable

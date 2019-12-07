@@ -1,9 +1,13 @@
 using QuerySQLite
+
+using Documenter: doctest
 using Query
-using Test
-using SQLite: DB, drop!, execute!, Stmt
 using QueryTables
+using SQLite: DB, drop!, execute!, Stmt
 using Statistics: mean
+using Test
+
+doctest(QuerySQLite)
 
 @testset "SQLite tutorial" begin
 
@@ -102,10 +106,12 @@ execute!(Stmt(connection, """
         d Text,
         e Int,
         f Int,
-        g Text
+        g Text,
+        h Text,
+        i Text
     )"""))
 execute!(Stmt(connection, """
-    INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b")
+    INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b", " a ", "_a_")
 """))
 database = Database(connection)
 result =
@@ -138,7 +144,10 @@ result =
         char_test = char(_.f),
         instr_test_1 = instr(_.d, "b"),
         instr_test_2 = instr("ab", _.g),
-        instr_test_3 = instr(_.d, _.g)
+        instr_test_3 = instr(_.d, _.g),
+        hex_test = hex(_.d),
+        strip_test = strip(_.h),
+        strip_test_2 = strip(_.i, '_')
     }) |>
     collect |>
     first
@@ -172,6 +181,9 @@ result =
 @test_broken result.instr_test_1 == 2
 @test result.instr_test_2 == 2
 @test result.instr_test_3 == 2
+@test result.hex_test == "6162"
+@test result.strip_test == "a"
+@test result.strip_test_2 == "a"
 
 drop!(connection, "test")
 
