@@ -1,12 +1,13 @@
 module QuerySQLite
 
-import Base: !, &, |, ==, !=, *, +, %, abs, Char, coalesce, collect, eltype, getproperty, length,
+import Base: !, &, |, ==, !=, *, +, %, abs, Char, coalesce, collect, convert, eltype, getproperty, length,
 lowercase, in, isdone, isequal, isless, ismissing, iterate, IteratorSize, max, min,
-occursin, rand, show, showerror, startswith, string, strip, uppercase
+occursin, rand, replace, repr, round, show, showerror, startswith, string, strip, SubString, uppercase
 using Base: Generator, NamedTuple, RefValue, SizeUnknown, tail
 using Base.Meta: quot
 import Base.Multimedia: showable
 using DataValues: DataValue
+import Dates: Date, DateTime, Time
 import IteratorInterfaceExtensions: getiterator, isiterable
 import MacroTools
 using MacroTools: @capture

@@ -1,8 +1,20 @@
 # All code is attached to its underlying database source
 struct SourceCode{Source}
     source::Source
-    code::Expr
+    code::Union{Expr, Nothing}
 end
+
+"""
+    struct BySQL{Source}
+
+If you would like a statement to be evaluated by SQL, not Julia, and
+none of the arguments are SQL code, you can use BySQL to hack dispatch.
+"""
+struct BySQL{Source}
+    source::Source
+end
+
+export BySQL
 
 # Every time `SourceCode` objects are combined, check to see whether they all come from the same source
 function pop_source!(sources, something)
@@ -12,18 +24,28 @@ function pop_source!(sources, source_code::SourceCode)
     push!(sources, source_code.source)
     source_code.code
 end
+function pop_source!(sources, by_sql::BySQL)
+    push!(sources, by_sql.source)
+    by_sql
+end
 function key_pop_source!(sources, (key, source_code))
-    code = pop_source!(souces, source_code)
+    code = pop_source!(sources, source_code)
     Expr(:kw, key, code)
 end
 
 function combine_sources(a_function, source_codes...; key_source_codes...)
     sources = Set(Any[])
-    codes = partial_map(pop_source!, sources, source_codes)
-    key_codes = (
+    codes = [
+        pop_source!(sources, source_code)
+        for source_code in source_codes
+    ]
+    filter!(codes) do code
+        !(code isa BySQL)
+    end
+    key_codes = [
         key_pop_source!(sources, key_source_code)
         for key_source_code in key_source_codes
-    )
+    ]
     if length(sources) != 1
         error("Expected exactly one source; got ($(sources...))")
     else
@@ -56,12 +78,12 @@ function code_instead(location, a_function, types...)
     arguments = ntuple(numbered_argument, length(types))
     keywords = Expr(:parameters, Expr(:..., :keywords))
     Expr(:function,
-        Expr(:call, a_function, keywords, map_unrolled(assert_type, arguments, types)...),
+        Expr(:call, a_function, keywords, map(assert_type, arguments, types)...),
         Expr(:block, location, Expr(:call,
             combine_sources,
             keywords,
             a_function,
-            map_unrolled(maybe_splat, arguments, types)...
+            map(maybe_splat, arguments, types)...
         ))
     )
 end
@@ -110,6 +132,14 @@ end
 @code_instead char SourceCode Vararg{Any}
 
 @code_instead coalesce SourceCode Vararg{Any}
+
+@code_instead convert Type{Int} SourceCode
+
+# TODO: support dateformat
+@code_instead Date SourceCode
+
+# TODO: support dateformat
+@code_instead DateTime SourceCode
 
 @code_instead QueryOperators.drop SourceCode Integer
 
@@ -164,7 +194,24 @@ end
 
 @code_instead QueryOperators.orderby_descending SourceCode Any Expr
 
+@code_instead rand BySQL Type{Int}
+
+# TODO: add more methods
+@code_instead replace SourceCode Pair
+
+@code_instead repr SourceCode
+
+@code_instead round SourceCode
+
 @code_instead secondary SourceCode
+
+@code_instead strip SourceCode
+@code_instead strip SourceCode Char
+
+@code_instead SubString SourceCode Number Number
+@code_instead SubString SourceCode Number
+
+@code_instead sum SourceCode
 
 @code_instead QueryOperators.take SourceCode Any
 
@@ -172,10 +219,10 @@ end
 
 @code_instead QueryOperators.thenby_descending SourceCode Any Expr
 
-@code_instead sum SourceCode
+# TODO: support dateformat
+@code_instead Time SourceCode
 
-@code_instead strip SourceCode
-@code_instead strip SourceCode Char
+@code_instead type_of SourceCode
 
 # TODO: add more methods
 @code_instead QueryOperators.unique SourceCode Any Expr
@@ -184,20 +231,10 @@ end
 
 # TODO: add
 # printf
-# quote
-# random
 # randomblob
-# replace
-# round
-# substr
-# typeof
-# unicode
 # zeroblob
 # group_concat
 # total
-# date
-# time
-# datetime
 # julianday
 # strftime
 

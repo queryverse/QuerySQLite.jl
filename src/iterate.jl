@@ -115,8 +115,8 @@ function getiterator(source_code::SourceCode)
         sqlite3_column_count(handle)
     )
     SQLiteCursor{NamedTuple{
-        Tuple(map_unrolled(first, schema)),
-        Tuple{map_unrolled(second, schema)...}
+        Tuple(map(first, schema)),
+        Tuple{map(second, schema)...}
     }}(statement, Ref(status), Ref(0))
 end
 

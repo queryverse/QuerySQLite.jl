@@ -3,14 +3,15 @@ uuid = "57f923c0-76be-11e9-095d-c942eaffc94b"
 version = "0.2.1-DEV"
 
 [deps]
+DataValues = "e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 IteratorInterfaceExtensions = "82899510-4779-5014-852e-03e436cf321d"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 QueryOperators = "2aef5ad7-51ca-5a8f-8e88-e75cf067b44b"
 SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
-TableTraits = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
-DataValues = "e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5"
-TableShowUtils = "5e66a065-1f0a-5976-b372-e0b8c017ca10"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+TableShowUtils = "5e66a065-1f0a-5976-b372-e0b8c017ca10"
+TableTraits = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
 
 [extras]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"

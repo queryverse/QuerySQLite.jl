@@ -1,5 +1,7 @@
 using QuerySQLite
 
+using DataValues: DataValue
+using Dates: Date, DateTime, Time
 using Documenter: doctest
 using Query
 using QueryTables
@@ -108,12 +110,17 @@ execute!(Stmt(connection, """
         f Int,
         g Text,
         h Text,
-        i Text
+        i Text,
+        j Real,
+        k Text,
+        l Text,
+        m Text
     )"""))
 execute!(Stmt(connection, """
-    INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b", " a ", "_a_")
+    INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b", " a ", "_a_", 1.11, "2019-12-08", "2019-12-08T11:09:00", "11:09:00")
 """))
 database = Database(connection)
+
 result =
     database.test |>
     @map({
@@ -147,7 +154,19 @@ result =
         instr_test_3 = instr(_.d, _.g),
         hex_test = hex(_.d),
         strip_test = strip(_.h),
-        strip_test_2 = strip(_.i, '_')
+        strip_test_2 = strip(_.i, '_'),
+        repr_test = repr(_.d),
+        replace_test = replace(_.d, "b" => "a"),
+        round_test_1 = round(_.j, digits = 1),
+        round_test_2 = round(_.j),
+        SubString_test_1 = SubString(_.d, 2, 2),
+        SubString_test_2 = SubString(_.d, 2),
+        random_test = rand(BySQL(_), Int),
+        date_test = Date(_.k),
+        datetime_test = DateTime(_.l),
+        time_test= Time(_.m),
+        type_of_test = type_of(_.a),
+        convert_test = convert(Int, _.g)
     }) |>
     collect |>
     first
@@ -177,13 +196,24 @@ result =
 @test result.uppercase_test == "AB"
 @test result.lowercase_test == "ab"
 @test result.char_test == "A"
-# TODO: fix
+# TODO: fix broken tests
 @test_broken result.instr_test_1 == 2
 @test result.instr_test_2 == 2
 @test result.instr_test_3 == 2
 @test result.hex_test == "6162"
 @test result.strip_test == "a"
 @test result.strip_test_2 == "a"
+@test result.repr_test == "\'ab\'"
+@test_broken result.replace_test == "aa"
+@test result.round_test_1 == 1.1
+@test result.round_test_2 == 1.0
+@test result.SubString_test_1 == "b"
+@test result.SubString_test_2 == "b"
+@test result.random_test isa DataValue{Int}
+@test result.date_test == "2019-12-08"
+@test result.datetime_test == "2019-12-08 11:09:00"
+@test result.time_test == "11:09:00"
+@test result.type_of_test == "integer"
 
 drop!(connection, "test")
 

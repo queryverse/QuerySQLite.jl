@@ -25,11 +25,12 @@ end
 function model_row_call(::typeof(getproperty), source_tables::Database, table_name)
     source = get_source(source_tables)
     column_names = get_column_names(source, table_name)
-    NamedTuple{column_names}(partial_map(
-        get_column,
-        SourceRow(source, table_name),
-        column_names
-    ))
+    source_row = SourceRow(source, table_name)
+    NamedTuple{column_names}(
+        map(column_names) do column_name
+            get_column(source_row, column_name)
+        end
+    )
 end
 
 # Map is the only function which directly modifies the model row

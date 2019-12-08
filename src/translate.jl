@@ -2,8 +2,8 @@
 # Frustratingly, primary tables are translated differently from secondary tables, so translate must propagate the `primary` keyword
 struct SQLExpression
     call::Symbol
-    arguments::Tuple
-    SQLExpression(call, arguments...) = new(call, arguments)
+    arguments::Vector{Any}
+    SQLExpression(call, arguments...) = new(call, Any[arguments...])
 end
 
 function translate(something::Union{Char, AbstractString}; primary = true)
@@ -26,7 +26,7 @@ end
 function translate_default(location, function_type, SQL_call)
     result = :(
         function translate_call($function_type, arguments...; primary = true)
-            $SQLExpression($SQL_call, $map_unrolled(
+            $SQLExpression($SQL_call, $map(
                 argument -> $translate(argument; primary = primary),
                 arguments
             )...)
@@ -65,9 +65,17 @@ function as(pair; primary = true)
     )
 end
 
+@translate_default ::typeof(coalesce) :COALESCE
+
 @translate_default ::typeof(char) :CHAR
 
-@translate_default ::typeof(coalesce) :COALESCE
+function translate_call(::typeof(convert), ::Type{Int}, it; primary = true)
+    SQLExpression(:UNICODE, translate(it))
+end
+
+@translate_default ::Type{Date} :DATE
+
+@translate_default ::Type{DateTime} :DATETIME
 
 @translate_default ::typeof(hex) :HEX
 
@@ -191,9 +199,32 @@ function translate_call(::typeof(QueryOperators.orderby_descending), unordered, 
     )
 end
 
+@translate_default ::typeof(repr) :QUOTE
+
+function translate_call(::typeof(rand), ::Type{Int}; primary = true, digits = 0)
+    SQLExpression(:RANDOM)
+end
+
+function translate_call(::typeof(replace), it, pair; primary = true)
+    SQLExpression(:REPLACE,
+        translate(it; primary = primary),
+        translate(pair.first; primary = primary),
+        translate(pair.second; primary = primary)
+    )
+end
+
+function translate_call(::typeof(round), it; primary = true, digits = 0)
+    SQLExpression(:ROUND,
+        translate(it; primary = primary),
+        translate(digits; primary = primary)
+    )
+end
+
 @translate_default ::typeof(string) :||
 
 @translate_default ::typeof(strip) :TRIM
+
+@translate_default ::Type{SubString} :SUBSTR
 
 @translate_default ::typeof(sum) :SUM
 
@@ -214,6 +245,10 @@ function translate_call(::typeof(QueryOperators.thenby_descending), unordered, k
         )
     )
 end
+
+@translate_default ::Type{Time} :Time
+
+@translate_default ::typeof(type_of) :TYPEOF
 
 function translate_call(::typeof(QueryOperators.unique), repeated, key_function, key_function_expression; primary = true)
     result = translate(repeated; primary = primary)
