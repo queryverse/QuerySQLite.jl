@@ -100,7 +100,6 @@ function name_and_type(handle, column_number, nullable = true, strict_types = tr
 end
 
 function getiterator(source_code::SourceCode)
-    # TODO REVIEW
     statement = Stmt(
         source_code.source,
         string(finalize(translate(source_code.code)))

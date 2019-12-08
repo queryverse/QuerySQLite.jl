@@ -93,6 +93,12 @@ group_by_row =
 @test group_by_row.min == 199836
 @test group_by_row.mean == 240041.5
 
+@test collect(
+    database.Track |>
+    @select(:AlbumId, :Composer) |>
+    @mutate(bar = _.AlbumId * 2)
+)[1].AlbumId == 1
+
 end
 
 @testset "Systematic tests" begin
@@ -102,19 +108,19 @@ connection = DB(filename)
 execute!(Stmt(connection, """DROP TABLE IF EXISTS test"""))
 execute!(Stmt(connection, """
     CREATE TABLE test (
-        a Int,
-        b Int,
-        c Int,
-        d Text,
-        e Int,
-        f Int,
-        g Text,
-        h Text,
-        i Text,
-        j Real,
-        k Text,
-        l Text,
-        m Text
+        zero Int,
+        one Int,
+        negative_one Int,
+        ab Text,
+        null_column Int,
+        A_code Int,
+        b Text,
+        a_space Text,
+        a_underscore Text,
+        one_point_one_one Real,
+        date_text Text,
+        datetime_text Text,
+        time_text Text
     )"""))
 execute!(Stmt(connection, """
     INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b", " a ", "_a_", 1.11, "2019-12-08", "2019-12-08T11:09:00", "11:09:00")
@@ -124,49 +130,49 @@ database = Database(connection)
 result =
     database.test |>
     @map({
-        equals_test = _.a == _.b,
-        not_equals_test = _.a != _.b,
-        not_test = !(_.a),
-        and_test = _.a & _.b,
-        or_test = _.a | _.b,
-        times_test = _.a * _.b,
-        plus_test = _.a + _.b,
-        mod_test = _.a % _.b,
-        abs_test = abs(_.c),
-        in_test = _.a in (0, 1),
-        coalesce_test = coalesce(_.e, _.a),
-        if_else_test_1 = if_else(_.b, 1, 0),
-        if_else_test_2 = if_else(1, _.b, 0),
-        if_else_test_3 = if_else(0, 1, _.a),
-        if_else_test_4 = if_else(0, _.b, _.a),
-        if_else_test_5 = if_else(_.a, 1, _.a),
-        if_else_test_6 = if_else(_.b, _.b, 0),
-        if_else_test_7 = if_else(_.b, _.b, _.a),
-        ismissing_test = ismissing(_.e),
-        lowercase_test = lowercase(_.d),
-        max_test = max(_.b, 0),
-        min_test = min(_.a, 1),
-        occursin_test = occursin(r"A.*", _.d),
-        uppercase_test = uppercase(_.d),
-        char_test = char(_.f),
-        instr_test_1 = instr(_.d, "b"),
-        instr_test_2 = instr("ab", _.g),
-        instr_test_3 = instr(_.d, _.g),
-        hex_test = hex(_.d),
-        strip_test = strip(_.h),
-        strip_test_2 = strip(_.i, '_'),
-        repr_test = repr(_.d),
-        replace_test = replace(_.d, "b" => "a"),
-        round_test_1 = round(_.j, digits = 1),
-        round_test_2 = round(_.j),
-        SubString_test_1 = SubString(_.d, 2, 2),
-        SubString_test_2 = SubString(_.d, 2),
+        equals_test = _.zero == _.one,
+        not_equals_test = _.zero != _.one,
+        not_test = !(_.zero),
+        and_test = _.zero & _.one,
+        or_test = _.zero | _.one,
+        times_test = _.zero * _.one,
+        plus_test = _.zero + _.one,
+        mod_test = _.zero % _.one,
+        abs_test = abs(_.negative_one),
+        in_test = _.zero in (0, 1),
+        coalesce_test = coalesce(_.null_column, _.zero),
+        if_else_test_1 = if_else(_.one, 1, 0),
+        if_else_test_2 = if_else(1, _.one, 0),
+        if_else_test_3 = if_else(0, 1, _.zero),
+        if_else_test_4 = if_else(0, _.one, _.zero),
+        if_else_test_5 = if_else(_.zero, 1, _.zero),
+        if_else_test_6 = if_else(_.one, _.one, 0),
+        if_else_test_7 = if_else(_.one, _.one, _.zero),
+        ismissing_test = ismissing(_.null_column),
+        lowercase_test = lowercase(_.ab),
+        max_test = max(_.one, 0),
+        min_test = min(_.zero, 1),
+        occursin_test = occursin(r"A.*", _.ab),
+        uppercase_test = uppercase(_.ab),
+        char_test = char(_.A_code),
+        instr_test_1 = instr(_.ab, "b"),
+        instr_test_2 = instr("ab", _.b),
+        instr_test_3 = instr(_.ab, _.b),
+        hex_test = hex(_.ab),
+        strip_test = strip(_.a_space),
+        strip_test_2 = strip(_.a_underscore, '_'),
+        repr_test = repr(_.ab),
+        replace_test = replace(_.ab, "b" => "a"),
+        round_test_1 = round(_.one_point_one_one, digits = 1),
+        round_test_2 = round(_.one_point_one_one),
+        SubString_test_1 = SubString(_.ab, 2, 2),
+        SubString_test_2 = SubString(_.ab, 2),
         random_test = rand(BySQL(_), Int),
-        date_test = Date(_.k),
-        datetime_test = DateTime(_.l),
-        time_test= Time(_.m),
-        type_of_test = type_of(_.a),
-        convert_test = convert(Int, _.g)
+        date_test = Date(_.date_text),
+        datetime_test = DateTime(_.datetime_text),
+        time_test= Time(_.time_text),
+        type_of_test = type_of(_.zero),
+        convert_test = convert(Int, _.b)
     }) |>
     collect |>
     first
@@ -196,15 +202,14 @@ result =
 @test result.uppercase_test == "AB"
 @test result.lowercase_test == "ab"
 @test result.char_test == "A"
-# TODO: fix broken tests
-@test_broken result.instr_test_1 == 2
+@test result.instr_test_1 == 2
 @test result.instr_test_2 == 2
 @test result.instr_test_3 == 2
 @test result.hex_test == "6162"
 @test result.strip_test == "a"
 @test result.strip_test_2 == "a"
 @test result.repr_test == "\'ab\'"
-@test_broken result.replace_test == "aa"
+@test result.replace_test == "aa"
 @test result.round_test_1 == 1.1
 @test result.round_test_2 == 1.0
 @test result.SubString_test_1 == "b"
@@ -220,5 +225,3 @@ drop!(connection, "test")
 @test_throws ArgumentError Database("file.not_sqlite")
 
 end
-
-# TODO: add doctests as tests
