@@ -40,6 +40,5 @@ get_source(source_tables::Database) = getfield(source_tables, :source)
 # getproperty overloading allows direct access to each table in the database
 function getproperty(source_tables::Database, table_name::Symbol)
     SourceCode(get_source(source_tables),
-        Expr(:call, getproperty, source_tables, table_name)
-    )
+        Expr(:call, getproperty, source_tables, table_name))
 end

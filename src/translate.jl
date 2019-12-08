@@ -10,7 +10,7 @@ function nest(sql_expression)
     SQLExpression(:AS, SQLExpression(:FROM, sql_expression), :__TABLE__)
 end
 
-function translate(something::Union{Char, AbstractString}; _primary = true)
+function translate(something::Union{Char,AbstractString}; _primary = true)
     repr(something)
 end
 
@@ -29,11 +29,9 @@ end
 function translate_default(location, function_type, SQL_call)
     result = :(
         function translate_call($function_type, arguments...; _primary = true)
-            $SQLExpression($SQL_call, $map(
-                argument -> $translate(argument; _primary = _primary),
-                arguments
-            )...)
-        end
+        $SQLExpression($SQL_call, $map(argument->$translate(argument; _primary = _primary),
+                arguments)...)
+    end
     )
     result.args[2].args[1] = location
     result
@@ -64,8 +62,7 @@ end
 function as(pair; _primary = true)
     SQLExpression(:AS,
         translate(pair.second.code; _primary = _primary),
-        pair.first
-    )
+        pair.first)
 end
 
 @translate_default ::typeof(coalesce) :COALESCE
@@ -87,8 +84,7 @@ end
 function translate_call(::typeof(QueryOperators.filter), iterator, call, call_expression; _primary = true)
     SQLExpression(:WHERE,
         translate(iterator; _primary = _primary),
-        translate(call(model_row(iterator)).code; _primary = _primary)
-    )
+        translate(call(model_row(iterator)).code; _primary = _primary))
 end
 
 function translate_call(::typeof(getproperty), source_tables::Database, table_name; _primary = true)
@@ -111,14 +107,11 @@ end
 function translate_call(::typeof(QueryOperators.groupby), ungrouped, group_function, group_function_expression, map_selector, map_function_expression; _primary = true)
     model = model_row(ungrouped)
     SQLExpression(Symbol("GROUP BY"),
-        nest(translate_call(
-            QueryOperators.map,
+        nest(translate_call(QueryOperators.map,
             ungrouped,
             map_selector, map_function_expression,
-            _primary = _primary
-        )),
-        translate(group_function(model).code; _primary = _primary)
-    )
+            _primary = _primary)),
+        translate(group_function(model).code; _primary = _primary))
 end
 
 @translate_default ::typeof(if_else) :CASE
@@ -141,20 +134,14 @@ function translate_call(::typeof(QueryOperators.join), source1, source2, key1, k
             SQLExpression(Symbol("INNER JOIN"),
                 translate(source1),
                 # mark as not _primary to suppress FROM
-                translate(source2; _primary = false)
-            ),
+                translate(source2; _primary = false)),
             # mark both as not _primary to always be explicit about table
             SQLExpression(:(=),
                 translate(key1(model_row_1).code; _primary = false),
-                translate(key2(model_row_2).code; _primary = false)
-            )
-        ),
+                translate(key2(model_row_2).code; _primary = false))),
         # mark both as not _primary to always be explicit about table
-        Generator(
-            pair -> as(pair; _primary = false),
-            pairs(combine(model_row_1, model_row_2))
-        )...
-    )
+        Generator(pair->as(pair; _primary = false),
+            pairs(combine(model_row_1, model_row_2)))...)
 end
 
 @translate_default ::typeof(length) :COUNT
@@ -166,13 +153,9 @@ function translate_call(::typeof(QueryOperators.map), select_table, call, call_e
     if inner.call == :SELECT
         inner = nest(inner)
     end
-    SQLExpression(
-        :SELECT, inner,
-        Generator(
-            pair -> as(pair; _primary = _primary),
-            pairs(call(model_row(select_table)))
-        )...
-    )
+    SQLExpression(:SELECT, inner,
+        Generator(pair->as(pair; _primary = _primary),
+            pairs(call(model_row(select_table))))...)
 end
 
 @translate_default ::typeof(max) :max
@@ -182,27 +165,22 @@ end
 @translate_default ::typeof(min) :min
 
 translate_call(::typeof(occursin), needle::Regex, haystack; _primary = true) =
-    SQLExpression(
-        :LIKE,
+    SQLExpression(:LIKE,
         translate(haystack; _primary = _primary),
         # * => %, . => _
-        translate(replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_"))
-    )
+        translate(replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_")))
 
 function translate_call(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression; _primary = true)
     SQLExpression(Symbol("ORDER BY"),
         translate(unordered; _primary = _primary),
-        translate(key_function(model_row(unordered)).code; _primary = _primary)
-    )
+        translate(key_function(model_row(unordered)).code; _primary = _primary))
 end
 
 function translate_call(::typeof(QueryOperators.orderby_descending), unordered, key_function, key_function_expression; _primary = true)
     SQLExpression(Symbol("ORDER BY"),
         translate(unordered; _primary = _primary),
         SQLExpression(:DESC,
-            translate(key_function(model_row(unordered)).code; _primary = _primary)
-        )
-    )
+            translate(key_function(model_row(unordered)).code; _primary = _primary)))
 end
 
 @translate_default ::typeof(repr) :QUOTE
@@ -215,15 +193,13 @@ function translate_call(::typeof(replace), it, pair; _primary = true)
     SQLExpression(:REPLACE,
         translate(it; _primary = _primary),
         translate(pair.first; _primary = _primary),
-        translate(pair.second; _primary = _primary)
-    )
+        translate(pair.second; _primary = _primary))
 end
 
 function translate_call(::typeof(round), it; _primary = true, digits = 0)
     SQLExpression(:ROUND,
         translate(it; _primary = _primary),
-        translate(digits; _primary = _primary)
-    )
+        translate(digits; _primary = _primary))
 end
 
 @translate_default ::typeof(string) :||
@@ -239,17 +215,14 @@ end
 function translate_call(::typeof(QueryOperators.thenby), unordered, key_function, key_function_expression; _primary = true)
     original = translate(unordered; _primary = _primary)
     SQLExpression(original.call, original.arguments...,
-        translate(key_function(model_row(unordered)).code; _primary = _primary)
-    )
+        translate(key_function(model_row(unordered)).code; _primary = _primary))
 end
 
 function translate_call(::typeof(QueryOperators.thenby_descending), unordered, key_function, key_function_expression; _primary = true)
     original = translate(unordered; _primary = _primary)
     SQLExpression(original.call, original.arguments...,
         SQLExpression(:DESC,
-            translate(key_function(model_row(unordered)).code; _primary = _primary)
-        )
-    )
+            translate(key_function(model_row(unordered)).code; _primary = _primary)))
 end
 
 @translate_default ::Type{Time} :Time

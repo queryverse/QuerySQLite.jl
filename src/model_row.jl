@@ -18,19 +18,16 @@ end
 # Create a model row when getproperty is called on a Database
 function get_column(source_row, column_name)
     SourceCode(source_row.source,
-        Expr(:call, getproperty, source_row, column_name)
-    )
+        Expr(:call, getproperty, source_row, column_name))
 end
 
 function model_row_call(::typeof(getproperty), source_tables::Database, table_name)
     source = get_source(source_tables)
     column_names = get_column_names(source, table_name)
     source_row = SourceRow(source, table_name)
-    NamedTuple{column_names}(
-        map(column_names) do column_name
-            get_column(source_row, column_name)
-        end
-    )
+    NamedTuple{column_names}(map(column_names) do column_name
+        get_column(source_row, column_name)
+    end)
 end
 
 # Map is the only function which directly modifies the model row
@@ -39,7 +36,7 @@ function model_row_call(::typeof(QueryOperators.map), iterator, call, call_expre
 end
 
 # Grouped rows have their own dedicated model type
-struct GroupRow{Group, Row}
+struct GroupRow{Group,Row}
     group::Group
     row::Row
 end
