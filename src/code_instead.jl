@@ -1,7 +1,7 @@
 # All code is attached to its underlying database source
 struct SourceCode{Source}
     source::Source
-    code::Union{Expr, Nothing}
+    code::Expr
 end
 
 """
@@ -71,7 +71,6 @@ function combine_sources(a_function, source_codes...; key_source_codes...)
     end
 end
 
-# `@code_instead` hijacks call to create Julia expressions instead of evaluating functions
 function numbered_argument(number)
     Symbol(string("argument", number))
 end
@@ -89,6 +88,7 @@ function maybe_splat(argument, a_type)
     end
 end
 
+# `@code_instead` hijacks call to create Julia expressions instead of evaluating functions
 function code_instead(location, a_function, types...)
     arguments = ntuple(numbered_argument, length(types))
     keywords = Expr(:parameters, Expr(:..., :keywords))

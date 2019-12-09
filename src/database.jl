@@ -41,6 +41,16 @@ export get_column_names
 
 A wrapper for an external database. `source` need only support
 [`get_table_names`](@ref) and [`get_column_names`](@ref).
+"""
+struct Database{Source}
+    source::Source
+end
+
+"""
+    Database(filename::AbstractString)
+
+Guess the database software from the filename.
+
 
 ```jldoctest
 julia> using QuerySQLite
@@ -63,15 +73,6 @@ TrackId │ Name                                      │ AlbumId │ MediaTypeI
 10      │ "Evil Walks"                              │ 1       │ 1
 ... with more rows, and 5 more columns: GenreId, Composer, Milliseconds, Bytes, UnitPrice
 ```
-"""
-struct Database{Source}
-    source::Source
-end
-
-"""
-    Database(filename::AbstractString)
-
-Guess the database software from the filename.
 """
 function Database(filename::AbstractString)
     if endswith(filename, ".sqlite")

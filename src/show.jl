@@ -25,14 +25,6 @@ function tight_infix(io, call, argument1, argument2)
     print(io, argument2)
 end
 
-function parenthesize_infix(io, call, argument1, argument2)
-    print(io, argument1)
-    print(io, ' ')
-    print(io, call)
-    print(io, ' ')
-    print(io, argument2)
-end
-
 function infix(io, call, argument1, argument2, arguments...)
     print(io, argument1)
     print(io, ' ')
@@ -111,7 +103,7 @@ function show(io::IO, sql_expression::SQLExpression)
     elseif call === :AND
         infix(io, call, arguments...)
     elseif call === :AS
-        parenthesize_infix(io, call, arguments...)
+        infix(io, call, arguments...)
     elseif call === :CASE
         case(io, call, arguments...)
     elseif call === :DESC

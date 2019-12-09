@@ -70,7 +70,7 @@ export type_of
 """
     hex(it)
 
-Uppercase heximal representation
+Uppercase hexadecimal representation
 
 ```jldoctest
 julia> using QuerySQLite
