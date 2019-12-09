@@ -2,6 +2,8 @@
 Modules = [QuerySQLite]
 ```
 
+## User documentation
+
 QuerySQLite is an experimental package sponsored by Google Summer of Code. It's
 finally ready for public use. Although QuerySQLite is only tested on SQLite,
 it's been purposefully designed to easily incorporate other database software.
@@ -22,7 +24,7 @@ If you would like to translate code to SQL, but you do not pass any SQL
 arguments, you will need use [`BySQL`](@ref) to pass a dummy SQL object instead.
 See the `BySQL` docstring for more information.
 
-## Developer notes
+## Developer documentation
 
 QuerySQLite hijacks Julia's multiple dispatch to translate external database
 commands to SQL instead of evaluating them. To do this, it construct a
