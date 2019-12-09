@@ -55,7 +55,11 @@ end
 
 @translate_default ::typeof(*) :*
 
+@translate_default ::typeof(/) :/
+
 @translate_default ::typeof(+) :+
+
+@translate_default ::typeof(-) :-
 
 @translate_default ::typeof(%) :%
 

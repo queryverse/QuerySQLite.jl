@@ -1,6 +1,6 @@
 module QuerySQLite
 
-import Base: !, &, |, ==, !=, *, +, %, abs, Char, coalesce, collect, convert, eltype, getproperty, length,
+import Base: !, &, |, ==, !=, *, /, +, -, %, abs, Char, coalesce, collect, convert, eltype, getproperty, length,
 lowercase, in, isdone, isequal, isless, ismissing, iterate, IteratorSize, max, min,
 occursin, rand, replace, repr, round, show, showerror, startswith, string, strip, SubString, uppercase
 using Base: Generator, NamedTuple, RefValue, SizeUnknown, tail

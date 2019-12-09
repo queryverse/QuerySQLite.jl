@@ -136,7 +136,9 @@ result =
         and_test = _.zero & _.one,
         or_test = _.zero | _.one,
         times_test = _.zero * _.one,
+        divide_test = _.zero / _.one,
         plus_test = _.zero + _.one,
+        minus_test = _.one - _.zero,
         mod_test = _.zero % _.one,
         abs_test = abs(_.negative_one),
         in_test = _.zero in (0, 1),
@@ -183,7 +185,9 @@ result =
 @test result.and_test == 0
 @test result.or_test == 1
 @test result.times_test == 0
+@test result.divide_test == 0
 @test result.plus_test == 1
+@test result.minus_test == 1
 @test result.mod_test == 0
 @test result.abs_test == 1
 @test result.in_test == 1

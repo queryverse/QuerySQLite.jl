@@ -9,6 +9,21 @@ end
 
 If you would like a statement to be evaluated by SQL, not Julia, and
 none of the arguments are SQL code, you can use BySQL to hack dispatch.
+
+```jldoctest
+julia> using QuerySQLite
+
+julia> using Query: @map
+
+julia> using DataValues: DataValue
+
+julia> database = Database(joinpath(pathof(QuerySQLite) |> dirname |> dirname, "test", "Chinook_Sqlite.sqlite"));
+
+julia> result = database.Track |> @map({a = rand(BySQL(_), Int)});
+
+julia> collect(result)[1].a isa DataValue{Int}
+true
+```
 """
 struct BySQL{Source}
     source::Source
@@ -119,9 +134,17 @@ end
 @code_instead (*) Any SourceCode
 @code_instead (*) SourceCode SourceCode
 
+@code_instead (-) SourceCode Any
+@code_instead (-) Any SourceCode
+@code_instead (-) SourceCode SourceCode
+
 @code_instead (+) SourceCode Any
 @code_instead (+) Any SourceCode
 @code_instead (+) SourceCode SourceCode
+
+@code_instead (/) SourceCode Any
+@code_instead (/) Any SourceCode
+@code_instead (/) SourceCode SourceCode
 
 @code_instead (%) SourceCode Any
 @code_instead (%) Any SourceCode
