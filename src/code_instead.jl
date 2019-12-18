@@ -152,21 +152,23 @@ end
 
 @code_instead abs SourceCode
 
+# TODO: add more methods
 @code_instead char SourceCode Vararg{Any}
 
 @code_instead coalesce SourceCode Vararg{Any}
 
 @code_instead convert Type{Int} SourceCode
 
-# TODO: support dateformat
 @code_instead Date SourceCode
 
-# TODO: support dateformat
 @code_instead DateTime SourceCode
 
 @code_instead QueryOperators.drop SourceCode Integer
 
 @code_instead QueryOperators.filter SourceCode Any Expr
+
+# TODO: support more methods
+@code_instead format SourceCode AbstractString
 
 @code_instead QueryOperators.groupby SourceCode Any Expr Any Expr
 
@@ -197,6 +199,8 @@ end
 
 @code_instead ismissing SourceCode
 
+@code_instead join SourceCode
+
 @code_instead QueryOperators.join SourceCode SourceCode Any Expr Any Expr Any Expr
 
 @code_instead max SourceCode Vararg{Any}
@@ -218,6 +222,9 @@ end
 @code_instead QueryOperators.orderby_descending SourceCode Any Expr
 
 @code_instead rand BySQL Type{Int}
+
+# TODO: add more methods
+@code_instead randstring BySQL Integer
 
 # TODO: add more methods
 @code_instead replace SourceCode Pair
@@ -254,11 +261,8 @@ end
 
 # TODO: add
 # printf
-# randomblob
 # zeroblob
-# group_concat
 # total
 # julianday
-# strftime
 
 # TODO: regex start and end

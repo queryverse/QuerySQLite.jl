@@ -1,7 +1,7 @@
 using QuerySQLite
 
 using DataValues: DataValue
-using Dates: Date, DateTime, Time
+using Dates: Date, DateTime, format, Time
 using Documenter: doctest
 using Query
 using QueryTables
@@ -125,10 +125,18 @@ execute!(Stmt(connection, """
 execute!(Stmt(connection, """
     INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b", " a ", "_a_", 1.11, "2019-12-08", "2019-12-08T11:09:00", "11:09:00")
 """))
-database = Database(connection)
+small = Database(connection)
+
+@test (small.test |>
+    @groupby(_.zero) |>
+    @map({
+        join_test = join(_.ab)
+    }) |>
+    collect |>
+    first).join_test == "ab"
 
 result =
-    database.test |>
+    small.test |>
     @map({
         equals_test = _.zero == _.one,
         not_equals_test = _.zero != _.one,
@@ -170,9 +178,12 @@ result =
         SubString_test_1 = SubString(_.ab, 2, 2),
         SubString_test_2 = SubString(_.ab, 2),
         random_test = rand(BySQL(_), Int),
+        # TODO: fix
+        # randstring_test = randstring(BySQL(_), 4),
         date_test = Date(_.date_text),
         datetime_test = DateTime(_.datetime_text),
-        time_test= Time(_.time_text),
+        time_test = Time(_.time_text),
+        format_test = format(_.datetime_text, "%Y-%m-%d %H:%M:%S"),
         type_of_test = type_of(_.zero),
         convert_test = convert(Int, _.b)
     }) |>
@@ -219,8 +230,10 @@ result =
 @test result.SubString_test_1 == "b"
 @test result.SubString_test_2 == "b"
 @test result.random_test isa DataValue{Int}
+@test_broken length(result.randomstring_test) == 4
 @test result.date_test == "2019-12-08"
 @test result.datetime_test == "2019-12-08 11:09:00"
+@test result.format_test == "2019-12-08 11:09:00"
 @test result.time_test == "11:09:00"
 @test result.type_of_test == "integer"
 
