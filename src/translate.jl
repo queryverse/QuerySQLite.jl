@@ -53,7 +53,11 @@ end
 
 @translate_default ::typeof(*) :*
 
+@translate_default ::typeof(/) :/
+
 @translate_default ::typeof(+) :+
+
+@translate_default ::typeof(-) :-
 
 @translate_default ::typeof(%) :%
 
@@ -85,6 +89,12 @@ function translate_call(::typeof(QueryOperators.filter), iterator, call, call_ex
     SQLExpression(:WHERE,
         translate(iterator; _primary = _primary),
         translate(call(model_row(iterator)).code; _primary = _primary))
+end
+
+function translate_call(::typeof(format), time_type, format_string; _primary = true)
+    SQLExpression(:STRFTIME,
+        translate(format_string; _primary = _primary),
+        translate(time_type; _primary = _primary))
 end
 
 function translate_call(::typeof(getproperty), source_tables::Database, table_name; _primary = true)
@@ -125,6 +135,8 @@ end
 @translate_default ::typeof(isless) :<
 
 @translate_default ::typeof(ismissing) Symbol("IS NULL")
+
+@translate_default ::typeof(join) :GROUP_CONCAT
 
 function translate_call(::typeof(QueryOperators.join), source1, source2, key1, key1_expression, key2, key2_expression, combine, combine_expression; _primary = true)
     model_row_1 = model_row(source1)
@@ -188,6 +200,8 @@ end
 function translate_call(::typeof(rand), ::Type{Int}; _primary = true, digits = 0)
     SQLExpression(:RANDOM)
 end
+
+@translate_default ::typeof(randstring) :RANDOMBLOB
 
 function translate_call(::typeof(replace), it, pair; _primary = true)
     SQLExpression(:REPLACE,
