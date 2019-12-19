@@ -33,16 +33,15 @@ function getvalue(cursor::SQLiteCursor, column_number::Int, ::Type{Value}) where
         Value()
     else
         julia_type = juliatype(column_type) # native SQLite Int, Float, and Text types
-        sqlitevalue(
-            if julia_type === Any
-                if !isbitstype(Value)
-                    Value
-                else
-                    julia_type
-                end
+        sqlitevalue(if julia_type === Any
+            if !isbitstype(Value)
+                Value
             else
                 julia_type
-            end, handle, column_number)
+            end
+        else
+            julia_type
+        end, handle, column_number)
     end
 end
 
@@ -100,23 +99,16 @@ function name_and_type(handle, column_number, nullable = true, strict_types = tr
 end
 
 function getiterator(source_code::SourceCode)
-    statement = Stmt(
-        source_code.source,
-        string(finalize(translate(source_code.code)))
-    )
+    statement = Stmt(source_code.source,
+        string(finalize(translate(source_code.code))))
     # bind!(statement, values)
     status = execute!(statement)
     handle = statement.handle
-    schema = ntuple(
-        let handle = handle
-            column_number -> name_and_type(handle, column_number)
-        end,
-        sqlite3_column_count(handle)
-    )
-    SQLiteCursor{NamedTuple{
-        Tuple(map(first, schema)),
-        Tuple{map(second, schema)...}
-    }}(statement, Ref(status), Ref(0))
+    schema = ntuple(let handle = handle
+        column_number->name_and_type(handle, column_number)
+    end,
+        sqlite3_column_count(handle))
+    SQLiteCursor{NamedTuple{Tuple(map(first, schema)),Tuple{map(second, schema)...}}}(statement, Ref(status), Ref(0))
 end
 
 # Use default show methods from the queryverse

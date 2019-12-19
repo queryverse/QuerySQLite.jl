@@ -64,10 +64,8 @@ function combine_sources(a_function, source_codes...; key_source_codes...)
     if length(sources) != 1
         error("Expected exactly one source; got ($(sources...))")
     else
-        SourceCode(
-            first(sources),
-            Expr(:call, a_function, Expr(:parameters, key_codes...), codes...)
-        )
+        SourceCode(first(sources),
+            Expr(:call, a_function, Expr(:parameters, key_codes...), codes...))
     end
 end
 
@@ -98,9 +96,7 @@ function code_instead(location, a_function, types...)
             combine_sources,
             keywords,
             a_function,
-            map(maybe_splat, arguments, types)...
-        ))
-    )
+            map(maybe_splat, arguments, types)...)))
 end
 
 macro code_instead(a_function, types...)
