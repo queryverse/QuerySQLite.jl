@@ -3,3 +3,4 @@
 *.jl.mem
 .vscode
 docs/build
+test/test.sqlite

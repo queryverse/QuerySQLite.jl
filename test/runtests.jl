@@ -114,16 +114,17 @@ execute!(Stmt(connection, """
         ab Text,
         null_column Int,
         A_code Int,
+        a Text,
         b Text,
         a_space Text,
         a_underscore Text,
+        a_wild Text,
         one_point_one_one Real,
-        date_text Text,
         datetime_text Text,
-        time_text Text
+        format Text
     )"""))
 execute!(Stmt(connection, """
-    INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "b", " a ", "_a_", 1.11, "2019-12-08", "2019-12-08T11:09:00", "11:09:00")
+    INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "a", "b", " a ", "_a_", "a%", 1.11, "2019-12-08T11:09:00", "%Y-%m-%d %H:%M:%S")
 """))
 small = Database(connection)
 
@@ -162,7 +163,9 @@ result =
         lowercase_test = lowercase(_.ab),
         max_test = max(_.one, 0),
         min_test = min(_.zero, 1),
-        occursin_test = occursin(r"A.*", _.ab),
+        occursin_test = occursin("a%", _.ab),
+        occursin_test_2 = occursin(_.a_wild, "ab"),
+        occursin_test_3 = occursin(_.a_wild, _.ab),
         uppercase_test = uppercase(_.ab),
         char_test = char(_.A_code),
         instr_test_1 = instr(_.ab, "b"),
@@ -180,12 +183,13 @@ result =
         random_test = rand(BySQL(_), Int),
         # TODO: fix
         # randstring_test = randstring(BySQL(_), 4),
-        date_test = Date(_.date_text),
-        datetime_test = DateTime(_.datetime_text),
-        time_test = Time(_.time_text),
+        # randstring_test2 = randstring(_.one),
         format_test = format(_.datetime_text, "%Y-%m-%d %H:%M:%S"),
+        format_test_2 = format("2019-12-08T11:09:00", _.format),
+        format_test_3 = format(_.datetime_text, _.format),
         type_of_test = type_of(_.zero),
-        convert_test = convert(Int, _.b)
+        convert_test = convert(Int, _.b),
+        string_test = string(_.a, _.b)
     }) |>
     collect |>
     first
@@ -214,6 +218,8 @@ result =
 @test result.max_test == 1
 @test result.min_test == 0
 @test result.occursin_test == 1
+@test result.occursin_test_2 == 1
+@test result.occursin_test_3 == 1
 @test result.uppercase_test == "AB"
 @test result.lowercase_test == "ab"
 @test result.char_test == "A"
@@ -231,11 +237,12 @@ result =
 @test result.SubString_test_2 == "b"
 @test result.random_test isa DataValue{Int}
 @test_broken length(result.randomstring_test) == 4
-@test result.date_test == "2019-12-08"
-@test result.datetime_test == "2019-12-08 11:09:00"
+@test_broken length(result.randomstring_test2) == 1
 @test result.format_test == "2019-12-08 11:09:00"
-@test result.time_test == "11:09:00"
+@test result.format_test_2 == "2019-12-08 11:09:00"
+@test result.format_test_3 == "2019-12-08 11:09:00"
 @test result.type_of_test == "integer"
+@test result.string_test == "ab"
 
 drop!(connection, "test")
 

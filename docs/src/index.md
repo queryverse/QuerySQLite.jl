@@ -18,6 +18,10 @@ Patterns like `if` and functions like `ifelse` and `typeof` can't be overloaded.
 
 If you would like to translate code to SQL, but you do not pass any SQL arguments, you will need to use [`BySQL`](@ref) to pass a dummy SQL object instead. See the `BySQL` docstring for more information.
 
+### Pattern matching
+
+Use SQLite syntax, not Julia syntax, for pattern matching for regular expressions and date formats.
+
 ## Developer documentation
 
 QuerySQLite hijacks Julia's multiple dispatch to translate external database commands to SQL instead of evaluating them. To do this, it constructs a "model_row" that represents the structure of a row of data. If you would like to add support for a new function, there are only a few steps:

@@ -100,6 +100,8 @@ function show(io::IO, sql_expression::SQLExpression)
         infix(io, call, arguments...)
     elseif call === :%
         infix(io, call, arguments...)
+    elseif call === :||
+        infix(io, call, arguments...)
     elseif call === :AND
         infix(io, call, arguments...)
     elseif call === :AS

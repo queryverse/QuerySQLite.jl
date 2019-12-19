@@ -159,16 +159,13 @@ end
 
 @code_instead convert Type{Int} SourceCode
 
-@code_instead Date SourceCode
-
-@code_instead DateTime SourceCode
-
 @code_instead QueryOperators.drop SourceCode Integer
 
 @code_instead QueryOperators.filter SourceCode Any Expr
 
-# TODO: support more methods
 @code_instead format SourceCode AbstractString
+@code_instead format AbstractString SourceCode
+@code_instead format SourceCode SourceCode
 
 @code_instead QueryOperators.groupby SourceCode Any Expr Any Expr
 
@@ -215,7 +212,9 @@ end
 
 @code_instead QueryOperators.map SourceCode Any Expr
 
-@code_instead occursin Regex SourceCode
+@code_instead occursin AbstractString SourceCode
+@code_instead occursin SourceCode AbstractString
+@code_instead occursin SourceCode SourceCode
 
 @code_instead QueryOperators.orderby SourceCode Any Expr
 
@@ -223,10 +222,9 @@ end
 
 @code_instead rand BySQL Type{Int}
 
-# TODO: add more methods
 @code_instead randstring BySQL Integer
+@code_instead randstring SourceCode
 
-# TODO: add more methods
 @code_instead replace SourceCode Pair
 
 @code_instead repr SourceCode
@@ -234,6 +232,9 @@ end
 @code_instead round SourceCode
 
 @code_instead secondary SourceCode
+
+# TODO: add more methods
+@code_instead string SourceCode Vararg{Any}
 
 @code_instead strip SourceCode
 @code_instead strip SourceCode Char
@@ -249,12 +250,8 @@ end
 
 @code_instead QueryOperators.thenby_descending SourceCode Any Expr
 
-# TODO: support dateformat
-@code_instead Time SourceCode
-
 @code_instead type_of SourceCode
 
-# TODO: add more methods
 @code_instead QueryOperators.unique SourceCode Any Expr
 
 @code_instead uppercase SourceCode
@@ -262,7 +259,3 @@ end
 # TODO: add
 # printf
 # zeroblob
-# total
-# julianday
-
-# TODO: regex start and end

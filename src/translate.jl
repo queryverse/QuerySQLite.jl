@@ -80,10 +80,6 @@ function translate_call(::typeof(convert), ::Type{Int}, it; _primary = true)
     SQLExpression(:UNICODE, translate(it))
 end
 
-@translate_default ::Type{Date} :DATE
-
-@translate_default ::Type{DateTime} :DATETIME
-
 @translate_default ::typeof(hex) :HEX
 
 @translate_default ::typeof(QueryOperators.drop) :OFFSET
@@ -195,12 +191,11 @@ end
 
 @translate_default ::typeof(min) :min
 
-translate_call(::typeof(occursin), needle::Regex, haystack; _primary = true) =
+translate_call(::typeof(occursin), needle, haystack; _primary = true) =
     SQLExpression(
         :LIKE,
         translate(haystack; _primary = _primary),
-        # * => %, . => _
-        translate(replace(replace(needle.pattern, r"(?<!\\)\.\*" => "%"), r"(?<!\\)\." => "_"))
+        translate(needle; _primary = _primary)
     )
 
 function translate_call(::typeof(QueryOperators.orderby), unordered, key_function, key_function_expression; _primary = true)
@@ -267,8 +262,6 @@ function translate_call(::typeof(QueryOperators.thenby_descending), unordered, k
         )
     )
 end
-
-@translate_default ::Type{Time} :Time
 
 @translate_default ::typeof(type_of) :TYPEOF
 

@@ -7,7 +7,7 @@ using Base: Generator, NamedTuple, RefValue, SizeUnknown, tail
 using Base.Meta: quot
 import Base.Multimedia: showable
 using DataValues: DataValue
-import Dates: Date, DateTime, format, Time
+import Dates: format
 import IteratorInterfaceExtensions: getiterator, isiterable
 import MacroTools
 using MacroTools: @capture
