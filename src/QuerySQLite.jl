@@ -15,7 +15,7 @@ import QueryOperators
 import Random: randstring
 import SQLite
 import SQLite: getvalue
-using SQLite: columns, DB, execute!, generate_namedtuple, juliatype,
+using SQLite: columns, DB, execute, juliatype,
 SQLITE_DONE, SQLITE_NULL, SQLITE_ROW, sqlite3_column_count, sqlite3_column_name,
 sqlite3_column_type, sqlite3_step, sqlitevalue, Stmt, tables
 import Statistics: mean, sum

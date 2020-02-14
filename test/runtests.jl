@@ -5,7 +5,7 @@ using Dates: Date, DateTime, format, Time
 using Documenter: doctest
 using Query
 using QueryTables
-using SQLite: DB, drop!, execute!, Stmt
+using SQLite: DB, drop!, execute, Stmt
 using Statistics: mean
 using Test
 
@@ -103,10 +103,13 @@ end
 
 @testset "Systematic tests" begin
 
-filename = joinpath(@__DIR__, "test.sqlite")
+filename = joinpath(@__DIR__, "tmp", "test.sqlite")
+isfifo(filename) && rm(filename)
+cp(joinpath(@__DIR__, "test.sqlite"), filename)
+
 connection = DB(filename)
-execute!(Stmt(connection, """DROP TABLE IF EXISTS test"""))
-execute!(Stmt(connection, """
+execute(Stmt(connection, """DROP TABLE IF EXISTS test"""))
+execute(Stmt(connection, """
     CREATE TABLE test (
         zero Int,
         one Int,
@@ -123,7 +126,7 @@ execute!(Stmt(connection, """
         datetime_text Text,
         format Text
     )"""))
-execute!(Stmt(connection, """
+execute(Stmt(connection, """
     INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "a", "b", " a ", "_a_", "a%", 1.11, "2019-12-08T11:09:00", "%Y-%m-%d %H:%M:%S")
 """))
 small = Database(connection)
