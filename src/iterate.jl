@@ -1,3 +1,12 @@
+function generate_namedtuple(::Type{NamedTuple{names, types}}, q) where {names, types}
+    if @generated
+        vals = Tuple(:(getvalue(q, $i, $(fieldtype(types, i)))) for i = 1:fieldcount(types))
+        return :(NamedTuple{names, types}(($(vals...),)))
+    else
+        return NamedTuple{names, types}(Tuple(getvalue(q, i, fieldtype(types, i)) for i = 1:fieldcount(types)))
+    end
+end
+
 # This section of the code hijacks SQLite internals to make queryverse-compatible iterators
 # TODO: submit as a PR to SQLite
 struct SQLiteCursor{Row}
@@ -105,7 +114,7 @@ function getiterator(source_code::SourceCode)
         string(finalize(translate(source_code.code)))
     )
     # bind!(statement, values)
-    status = execute!(statement)
+    status = execute(statement)
     handle = statement.handle
     schema = ntuple(
         let handle = handle
