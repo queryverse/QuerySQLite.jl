@@ -104,7 +104,7 @@ end
 @testset "Systematic tests" begin
 
 filename = joinpath(@__DIR__, "tmp", "test.sqlite")
-isfifo(filename) && rm(filename)
+isfile(filename) && rm(filename)
 cp(joinpath(@__DIR__, "test.sqlite"), filename)
 
 connection = DB(filename)

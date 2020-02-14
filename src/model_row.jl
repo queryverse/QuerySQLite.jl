@@ -57,6 +57,6 @@ function length(group_of_rows::GroupRow)
 end
 
 function model_row_call(::typeof(QueryOperators.groupby), ungrouped, group_function, group_function_expression, map_selector, map_function_expression)
-    model = model_row(ungrouped)
+    model = map_selector(model_row(ungrouped))
     GroupRow(group_function(model), model)
 end
