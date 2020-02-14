@@ -175,10 +175,10 @@ julia> using QuerySQLite
 julia> database = Database(joinpath(pathof(QuerySQLite) |> dirname |> dirname, "test", "Chinook_Sqlite.sqlite"));
 
 julia> get_sql(database.Track)
-FROM (Track)
+SELECT * FROM (Track)
 ```
 """
 function get_sql(it)
-    translate(it.code)
+    finalize(translate(it.code))
 end
 export get_sql

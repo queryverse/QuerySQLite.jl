@@ -216,7 +216,7 @@ end
 
 @translate_default ::typeof(repr) :QUOTE
 
-function translate_call(::typeof(rand), ::Type{Int}; _primary = true, digits = 0)
+function translate_call(::typeof(rand), ::Type{Int}; _primary = true)
     SQLExpression(:RANDOM)
 end
 
