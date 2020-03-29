@@ -17,6 +17,11 @@ filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
 database = Database(filename)
 database2 = Database(DB(filename))
 
+@test (database.Track |>
+     @filter(_.AlbumId == 1) |>
+     collect |>
+     first).Name == "For Those About To Rock (We Salute You)"
+
 @test database.Track |>
     @map({_.TrackId, _.Name, _.Composer, _.UnitPrice}) |>
     collect |>

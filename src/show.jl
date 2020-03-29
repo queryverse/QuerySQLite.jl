@@ -150,9 +150,18 @@ function show(io::IO, sql_expression::SQLExpression)
     end
 end
 
+has_select(something) = false
+has_select(expression::SQLExpression) =
+    expression.call in (:SELECT, Symbol("SELECT DISTINCT"))
+
+seek_select(something) = false
+seek_select(expression::SQLExpression) =
+    has_select(expression) ||
+    any(seek_select(clause) for clause in expression.arguments)
+
 # Default to * if no columns are specifcied
 function finalize(sql_expression::SQLExpression)
-    if sql_expression.call in (:FROM, Symbol("GROUP BY"), Symbol("INNER JOIN"))
+    if !seek_select(sql_expression)
         SQLExpression(:SELECT, sql_expression, :*)
     else
         sql_expression
