@@ -85,8 +85,8 @@ group_by_row =
         AlbumId = key(_),
         length = length(_.AlbumId),
         sum = sum(_.Milliseconds),
-        min = min(_.Milliseconds),
-        max = max(_.Milliseconds),
+        min = minimum(_.Milliseconds),
+        max = maximum(_.Milliseconds),
         mean = mean(_.Milliseconds)
     }) |>
     collect |>

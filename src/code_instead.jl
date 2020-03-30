@@ -201,10 +201,12 @@ end
 @code_instead QueryOperators.join SourceCode SourceCode Any Expr Any Expr Any Expr
 
 @code_instead max SourceCode Vararg{Any}
+@code_instead maximum SourceCode
 
 @code_instead mean SourceCode
 
 @code_instead min SourceCode Vararg{Any}
+@code_instead minimum SourceCode
 
 @code_instead length SourceCode
 
