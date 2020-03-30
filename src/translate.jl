@@ -186,10 +186,12 @@ function translate_call(::typeof(QueryOperators.map), select_table, call, call_e
 end
 
 @translate_default ::typeof(max) :max
+@translate_default ::typeof(maximum) :max
 
 @translate_default ::typeof(mean) :AVG
 
 @translate_default ::typeof(min) :min
+@translate_default ::typeof(minimum) :min
 
 translate_call(::typeof(occursin), needle, haystack; _primary = true) =
     SQLExpression(
