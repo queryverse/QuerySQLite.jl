@@ -9,8 +9,8 @@
     submit(
         filter(
             let prefix = joinpath(pwd(), "src", "")
-                coverage -> startswith(coverage.filename, prefix)
-            end,
+        coverage->startswith(coverage.filename, prefix)
+    end,
             readfolder(".")
         )
     )

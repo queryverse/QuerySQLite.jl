@@ -1,9 +1,9 @@
-function generate_namedtuple(::Type{NamedTuple{names, types}}, q) where {names, types}
+function generate_namedtuple(::Type{NamedTuple{names,types}}, q) where {names,types}
     if @generated
         vals = Tuple(:(getvalue(q, $i, $(fieldtype(types, i)))) for i = 1:fieldcount(types))
-        return :(NamedTuple{names, types}(($(vals...),)))
+        return :(NamedTuple{names,types}(($(vals...),)))
     else
-        return NamedTuple{names, types}(Tuple(getvalue(q, i, fieldtype(types, i)) for i = 1:fieldcount(types)))
+        return NamedTuple{names,types}(Tuple(getvalue(q, i, fieldtype(types, i)) for i = 1:fieldcount(types)))
     end
 end
 
@@ -44,14 +44,14 @@ function getvalue(cursor::SQLiteCursor, column_number::Int, ::Type{Value}) where
         julia_type = juliatype(column_type) # native SQLite Int, Float, and Text types
         sqlitevalue(
             if julia_type === Any
-                if !isbitstype(Value)
-                    Value
-                else
-                    julia_type
-                end
+            if !isbitstype(Value)
+                Value
             else
                 julia_type
-            end, handle, column_number)
+            end
+        else
+            julia_type
+        end, handle, column_number)
     end
 end
 
@@ -118,14 +118,11 @@ function getiterator(source_code::SourceCode)
     handle = statement.handle
     schema = ntuple(
         let handle = handle
-            column_number -> name_and_type(handle, column_number)
-        end,
+        column_number->name_and_type(handle, column_number)
+    end,
         sqlite3_column_count(handle)
     )
-    SQLiteCursor{NamedTuple{
-        Tuple(map(first, schema)),
-        Tuple{map(second, schema)...}
-    }}(statement, Ref(status), Ref(0))
+    SQLiteCursor{NamedTuple{Tuple(map(first, schema)),Tuple{map(second, schema)...}}}(statement, Ref(status), Ref(0))
 end
 
 # Use default show methods from the queryverse
