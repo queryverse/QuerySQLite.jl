@@ -80,7 +80,7 @@ julia> hex("hello")
 ```
 """
 function hex(it::Number)
-    uppercase(string(it, base = 16))
+    uppercase(string(it, base=16))
 end
 function hex(it::AbstractString)
     join(hex(byte) for byte in codeunits(it))

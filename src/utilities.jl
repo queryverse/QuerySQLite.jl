@@ -4,10 +4,10 @@ end
 
 split_keyword(keyword::Expr) =
     if keyword.head === :kw
-        Pair(keyword.args[1], keyword.args[2])
-    else
-        error("Cannot split keyword $keyword")
-    end
+    Pair(keyword.args[1], keyword.args[2])
+else
+    error("Cannot split keyword $keyword")
+end
 
 # Split a function call into its pieces
 # Normalize non-function-like patterns into function calls

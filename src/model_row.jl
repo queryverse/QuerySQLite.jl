@@ -28,8 +28,8 @@ function model_row_call(::typeof(getproperty), source_tables::Database, table_na
     source_row = SourceRow(source, table_name)
     NamedTuple{column_names}(
         map(column_names) do column_name
-            get_column(source_row, column_name)
-        end
+        get_column(source_row, column_name)
+    end
     )
 end
 
@@ -39,7 +39,7 @@ function model_row_call(::typeof(QueryOperators.map), iterator, call, call_expre
 end
 
 # Grouped rows have their own dedicated model type
-struct GroupRow{Group, Row}
+struct GroupRow{Group,Row}
     group::Group
     row::Row
 end

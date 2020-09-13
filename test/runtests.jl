@@ -13,45 +13,45 @@ doctest(QuerySQLite)
 
 @testset "SQLite tutorial" begin
 
-filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
-database = Database(filename)
-database2 = Database(DB(filename))
+    filename = joinpath(@__DIR__, "Chinook_Sqlite.sqlite")
+    database = Database(filename)
+    database2 = Database(DB(filename))
 
-@test (database.Track |>
+    @test (database.Track |>
      @filter(_.AlbumId == 1) |>
      collect |>
      first).Name == "For Those About To Rock (We Salute You)"
 
-@test database.Track |>
+    @test database.Track |>
     @map({_.TrackId, _.Name, _.Composer, _.UnitPrice}) |>
     collect |>
     first |>
     propertynames == (:TrackId, :Name, :Composer, :UnitPrice)
 
-@test (database2.Customer |>
+    @test (database2.Customer |>
     @map({_.City, _.Country}) |>
     @orderby(_.Country) |>
     DataTable).Country[1] == "Argentina"
 
-@test database.Customer |>
+    @test database.Customer |>
     @map({_.City}) |>
     @unique() |>
     collect |>
     length == 53
 
-@test database.Track |>
+    @test database.Track |>
     @map({_.TrackId, _.Name}) |>
     @take(10) |>
     collect |>
     length == 10
 
-@test first((database.Track |>
+    @test first((database.Track |>
     @map({_.TrackId, _.Name}) |>
     @take(10) |>
     @drop(10) |>
     DataTable).Name)  == "C.O.D."
 
-@test first((
+    @test first((
     @from i in database.Track begin
         @orderby descending(i.Bytes), i.Name
         @select {i.TrackId, i.Name, i.Bytes}
@@ -59,7 +59,7 @@ database2 = Database(DB(filename))
     end
     ).Bytes) == 1059546140
 
-@test first((
+    @test first((
     @from i in database.Track begin
         @orderby i.Bytes, descending(i.Name)
         @select {i.TrackId, i.Name, i.Bytes}
@@ -67,18 +67,18 @@ database2 = Database(DB(filename))
     end
     ).Bytes) == 38747
 
-@test database.Artist |>
+    @test database.Artist |>
     @join(database.Album, _.ArtistId, _.ArtistId, {_.ArtistId, __.AlbumId}) |>
     DataTable |>
     length == 347
 
-@test (database.Track |>
+    @test (database.Track |>
     @map({_.Name, _.Milliseconds, _.Bytes, _.AlbumId}) |>
     @filter(_.AlbumId == 1) |>
     collect |>
     first).Name == "For Those About To Rock (We Salute You)"
 
-group_by_row =
+    group_by_row =
     database.Track |>
     @groupby(_.AlbumId) |>
     @map({
@@ -92,13 +92,13 @@ group_by_row =
     collect |>
     first
 
-@test group_by_row.AlbumId == 1
-@test group_by_row.length == 10
-@test group_by_row.sum == 2400415
-@test group_by_row.min == 199836
-@test group_by_row.mean == 240041.5
+    @test group_by_row.AlbumId == 1
+    @test group_by_row.length == 10
+    @test group_by_row.sum == 2400415
+    @test group_by_row.min == 199836
+    @test group_by_row.mean == 240041.5
 
-@test collect(
+    @test collect(
     database.Track |>
     @select(:AlbumId, :Composer) |>
     @mutate(bar = _.AlbumId * 2)
@@ -108,13 +108,13 @@ end
 
 @testset "Systematic tests" begin
 
-filename = joinpath(@__DIR__, "tmp", "test.sqlite")
-isfile(filename) && rm(filename)
-cp(joinpath(@__DIR__, "test.sqlite"), filename)
+    filename = joinpath(@__DIR__, "tmp", "test.sqlite")
+    isfile(filename) && rm(filename)
+    cp(joinpath(@__DIR__, "test.sqlite"), filename)
 
-connection = DB(filename)
-execute(Stmt(connection, """DROP TABLE IF EXISTS test"""))
-execute(Stmt(connection, """
+    connection = DB(filename)
+    execute(Stmt(connection, """DROP TABLE IF EXISTS test"""))
+    execute(Stmt(connection, """
     CREATE TABLE test (
         zero Int,
         one Int,
@@ -131,12 +131,12 @@ execute(Stmt(connection, """
         datetime_text Text,
         format Text
     )"""))
-execute(Stmt(connection, """
+    execute(Stmt(connection, """
     INSERT INTO test VALUES(0, 1, -1, "ab", NULL, 65, "a", "b", " a ", "_a_", "a%", 1.11, "2019-12-08T11:09:00", "%Y-%m-%d %H:%M:%S")
 """))
-small = Database(connection)
+    small = Database(connection)
 
-@test (small.test |>
+    @test (small.test |>
     @groupby(_.zero) |>
     @map({
         join_test = join(_.ab)
@@ -144,7 +144,7 @@ small = Database(connection)
     collect |>
     first).join_test == "ab"
 
-result =
+    result =
     small.test |>
     @map({
         equals_test = _.zero == _.one,
@@ -202,58 +202,58 @@ result =
     collect |>
     first
 
-@test result.equals_test == 0
-@test result.not_equals_test == 1
-@test result.not_test == 1
-@test result.and_test == 0
-@test result.or_test == 1
-@test result.times_test == 0
-@test result.divide_test == 0
-@test result.plus_test == 1
-@test result.minus_test == 1
-@test result.mod_test == 0
-@test result.abs_test == 1
-@test result.in_test == 1
-@test result.coalesce_test == 0
-@test result.if_else_test_1 == 1
-@test result.if_else_test_2 == 1
-@test result.if_else_test_3 == 0
-@test result.if_else_test_4 == 0
-@test result.if_else_test_5 == 0
-@test result.if_else_test_6 == 1
-@test result.if_else_test_7 == 1
-@test result.ismissing_test == 1
-@test result.max_test == 1
-@test result.min_test == 0
-@test result.occursin_test == 1
-@test result.occursin_test_2 == 1
-@test result.occursin_test_3 == 1
-@test result.uppercase_test == "AB"
-@test result.lowercase_test == "ab"
-@test result.char_test == "A"
-@test result.instr_test_1 == 2
-@test result.instr_test_2 == 2
-@test result.instr_test_3 == 2
-@test result.hex_test == "6162"
-@test result.strip_test == "a"
-@test result.strip_test_2 == "a"
-@test result.repr_test == "\'ab\'"
-@test result.replace_test == "aa"
-@test result.round_test_1 == 1.1
-@test result.round_test_2 == 1.0
-@test result.SubString_test_1 == "b"
-@test result.SubString_test_2 == "b"
-@test result.random_test isa DataValue{Int}
-@test_broken length(result.randomstring_test) == 4
-@test_broken length(result.randomstring_test2) == 1
-@test result.format_test == "2019-12-08 11:09:00"
-@test result.format_test_2 == "2019-12-08 11:09:00"
-@test result.format_test_3 == "2019-12-08 11:09:00"
-@test result.type_of_test == "integer"
-@test result.string_test == "ab"
+    @test result.equals_test == 0
+    @test result.not_equals_test == 1
+    @test result.not_test == 1
+    @test result.and_test == 0
+    @test result.or_test == 1
+    @test result.times_test == 0
+    @test result.divide_test == 0
+    @test result.plus_test == 1
+    @test result.minus_test == 1
+    @test result.mod_test == 0
+    @test result.abs_test == 1
+    @test result.in_test == 1
+    @test result.coalesce_test == 0
+    @test result.if_else_test_1 == 1
+    @test result.if_else_test_2 == 1
+    @test result.if_else_test_3 == 0
+    @test result.if_else_test_4 == 0
+    @test result.if_else_test_5 == 0
+    @test result.if_else_test_6 == 1
+    @test result.if_else_test_7 == 1
+    @test result.ismissing_test == 1
+    @test result.max_test == 1
+    @test result.min_test == 0
+    @test result.occursin_test == 1
+    @test result.occursin_test_2 == 1
+    @test result.occursin_test_3 == 1
+    @test result.uppercase_test == "AB"
+    @test result.lowercase_test == "ab"
+    @test result.char_test == "A"
+    @test result.instr_test_1 == 2
+    @test result.instr_test_2 == 2
+    @test result.instr_test_3 == 2
+    @test result.hex_test == "6162"
+    @test result.strip_test == "a"
+    @test result.strip_test_2 == "a"
+    @test result.repr_test == "\'ab\'"
+    @test result.replace_test == "aa"
+    @test result.round_test_1 == 1.1
+    @test result.round_test_2 == 1.0
+    @test result.SubString_test_1 == "b"
+    @test result.SubString_test_2 == "b"
+    @test result.random_test isa DataValue{Int}
+    @test_broken length(result.randomstring_test) == 4
+    @test_broken length(result.randomstring_test2) == 1
+    @test result.format_test == "2019-12-08 11:09:00"
+    @test result.format_test_2 == "2019-12-08 11:09:00"
+    @test result.format_test_3 == "2019-12-08 11:09:00"
+    @test result.type_of_test == "integer"
+    @test result.string_test == "ab"
 
-drop!(connection, "test")
+    drop!(connection, "test")
 
-@test_throws ArgumentError Database("file.not_sqlite")
+    @test_throws ArgumentError Database("file.not_sqlite")
 
 end
