@@ -94,7 +94,7 @@ function second((value_1, value_2))
     value_2
 end
 
-function name_and_type(handle, column_number, nullable = true, strict_types = true)
+function name_and_type(handle, column_number, nullable=true, strict_types=true)
     Symbol(unsafe_string(sqlite3_column_name(handle, column_number))),
     if strict_types
         julia_type = juliatype(handle, column_number)
@@ -118,8 +118,8 @@ function getiterator(source_code::SourceCode)
     handle = statement.handle
     schema = ntuple(
         let handle = handle
-        column_number->name_and_type(handle, column_number)
-    end,
+            column_number -> name_and_type(handle, column_number)
+        end,
         sqlite3_column_count(handle)
     )
     SQLiteCursor{NamedTuple{Tuple(map(first, schema)),Tuple{map(second, schema)...}}}(statement, Ref(status), Ref(0))
