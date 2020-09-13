@@ -29,11 +29,11 @@ end
 function translate_default(location, function_type, SQL_call)
     result = :(
         function translate_call($function_type, arguments...; _primary=true)
-        $SQLExpression($SQL_call, $map(
+            $SQLExpression($SQL_call, $map(
                 argument -> $translate(argument; _primary=_primary),
                 arguments
             )...)
-    end
+        end
     )
     result.args[2].args[1] = location
     result
