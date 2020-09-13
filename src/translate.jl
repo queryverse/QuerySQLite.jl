@@ -10,7 +10,7 @@ function nest(sql_expression)
     SQLExpression(:AS, SQLExpression(:FROM, sql_expression), :__TABLE__)
 end
 
-function translate(something::Union{Char, AbstractString}; _primary = true)
+function translate(something::Union{Char,AbstractString}; _primary = true)
     repr(something)
 end
 
@@ -29,11 +29,11 @@ end
 function translate_default(location, function_type, SQL_call)
     result = :(
         function translate_call($function_type, arguments...; _primary = true)
-            $SQLExpression($SQL_call, $map(
-                argument -> $translate(argument; _primary = _primary),
+        $SQLExpression($SQL_call, $map(
+                argument->$translate(argument; _primary = _primary),
                 arguments
             )...)
-        end
+    end
     )
     result.args[2].args[1] = location
     result
@@ -161,7 +161,7 @@ function translate_call(::typeof(QueryOperators.join), source1, source2, key1, k
         ),
         # mark both as not _primary to always be explicit about table
         Generator(
-            pair -> as(pair; _primary = false),
+            pair->as(pair; _primary = false),
             pairs(combine(model_row_1, model_row_2))
         )...
     )
@@ -179,7 +179,7 @@ function translate_call(::typeof(QueryOperators.map), select_table, call, call_e
     SQLExpression(
         :SELECT, inner,
         Generator(
-            pair -> as(pair; _primary = _primary),
+            pair->as(pair; _primary = _primary),
             pairs(call(model_row(select_table)))
         )...
     )
