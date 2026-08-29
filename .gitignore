@@ -4,3 +4,7 @@
 .vscode
 docs/build
 test/test.sqlite
+docs/build/
+docs/Manifest.toml
+test-output*.*
+Manifest.toml
