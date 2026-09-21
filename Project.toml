@@ -16,6 +16,7 @@ TableTraits = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
 
 [compat]
 DataValues = "0.4.11, 0.5, 1"
+Dates = "< 0.0.1, 1"
 IteratorInterfaceExtensions = "0.1.1, 1"
 MacroTools = "0.5"
 QueryOperators = "1"
